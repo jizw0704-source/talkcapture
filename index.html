@@ -10,11 +10,15 @@
     <title>报告拾光 · TalkCapture</title>
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">跳到主要内容</a>
     <header>
-      <h1>报告拾光</h1>
+      <div class="brand">
+        <h1 translate="no">报告拾光</h1>
+        <span translate="no">TalkCapture</span>
+      </div>
       <span class="local-label">本机处理 · 原图保留</span>
     </header>
-    <main>
+    <main id="mainContent" tabindex="-1">
       <nav class="steps" aria-label="整理步骤">
         <button
           id="stepImport"
@@ -49,6 +53,10 @@
         aria-label="自动整理"
         hidden
       >
+        <div class="automatic-heading">
+          <h2>整批生成 PPT</h2>
+          <span id="automaticSummary" class="hint"></span>
+        </div>
         <div class="automatic-actions">
           <div>
             <button id="autoOrganize" class="primary">
@@ -125,35 +133,42 @@
         class="import-screen"
         aria-labelledby="importTitle"
       >
-        <div class="intro">
-          <h2 id="importTitle" tabindex="-1">把报告照片整理成一份文件</h2>
-          <p>导入后自动寻找 PPT 画面，核对四角，再导出。</p>
+        <div class="import-layout">
+          <div class="intro">
+            <h2 id="importTitle" tabindex="-1">把报告照片整理成一份文件</h2>
+            <p>导入后自动寻找 PPT 画面，核对四角，再导出。</p>
+            <p class="import-note">
+              电脑选图，或用手机扫码传入。照片传完后，可以一次整理整批。
+            </p>
+            <button id="demo" class="quiet">体验示例</button>
+          </div>
+          <div class="upload-area">
+            <section
+              id="dropzone"
+              class="dropzone"
+              tabindex="0"
+              role="button"
+              aria-label="选择或拖入照片"
+            >
+              <strong>拖入照片，或点击选择</strong
+              ><span>JPEG、PNG、HEIC / HEIF</span
+              ><small>最多 100 张 · 单张 30 MB</small>
+            </section>
+            <div class="import-actions">
+              <button id="add" class="primary">选择照片</button
+              ><button id="phoneOpen" data-phone-control>手机传图</button
+              ><button id="continueReview" hidden>继续核对</button>
+            </div>
+            <input
+              id="files"
+              type="file"
+              accept=".jpg,.jpeg,.png,.heic,.heif"
+              multiple
+              hidden
+            />
+            <p class="hint permission">请使用有权保存和处理的报告照片。</p>
+          </div>
         </div>
-        <section
-          id="dropzone"
-          class="dropzone"
-          tabindex="0"
-          role="button"
-          aria-label="选择或拖入照片"
-        >
-          <strong>拖入照片，或点击选择</strong
-          ><span>JPEG、PNG、HEIC / HEIF</span
-          ><small>最多 100 张 · 单张 30 MB</small>
-        </section>
-        <div class="import-actions">
-          <button id="add" class="primary">选择照片</button
-          ><button id="phoneOpen" data-phone-control>手机传图</button
-          ><button id="demo" class="quiet">体验示例</button
-          ><button id="continueReview" hidden>继续核对</button>
-        </div>
-        <input
-          id="files"
-          type="file"
-          accept=".jpg,.jpeg,.png,.heic,.heif"
-          multiple
-          hidden
-        />
-        <p class="hint permission">请使用有权保存和处理的报告照片。</p>
         <details id="importSettings" class="settings">
           <summary>导入设置与项目管理</summary>
           <div class="toolbar">
@@ -360,10 +375,20 @@
           <h2 id="exportTitle" tabindex="-1">导出报告</h2>
           <span id="exportSummary" class="muted">导入后可导出</span>
         </div>
+        <div id="downloadResult" class="download-result" role="status" hidden>
+          <h3>文件已生成，可以下载了</h3>
+          <p id="downloadInfo" class="muted"></p>
+          <a id="download" class="download" hidden>下载文件</a>
+        </div>
         <div class="export-fields">
           <label class="report-name"
             >报告名称
-            <input id="projectName" value="学术报告" maxlength="80" /></label
+            <input
+              id="projectName"
+              name="reportName"
+              autocomplete="off"
+              value="学术报告"
+              maxlength="80" /></label
           ><label
             >格式
             <select id="format">
@@ -397,8 +422,7 @@
           <button id="backReview">返回核对</button>
           <div class="actions">
             <button id="export" class="primary">生成文件</button
-            ><button id="cancel" hidden>取消导出</button
-            ><a id="download" class="download" hidden>下载文件</a>
+            ><button id="cancel" hidden>取消导出</button>
           </div>
         </div>
       </section>

@@ -55,6 +55,8 @@ pnpm start
 
 正式名称与对外介绍见 [中英文项目介绍](docs/introduction.md)。英文入口见 [English README](README.en.md) 和 [English user guide](docs/usage.en.md)。工具界面目前为中文，英文说明提供对应按钮名称。
 
+本轮界面优化及技能来源见 [界面优化记录](docs/ui-refinement.md)。
+
 ## 开发检查
 
 ```sh

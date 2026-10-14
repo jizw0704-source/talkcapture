@@ -108,6 +108,7 @@ function revokeDownload() {
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = "";
   $("download").hidden = true;
+  $("downloadResult").hidden = true;
 }
 function save() {
   clearTimeout(saveTimer);
@@ -191,6 +192,13 @@ function renderAutomatic() {
       (!photo.file || !photo.processed || !!validateCorners(photo.corners))
     );
   });
+  const included = photos.filter((photo) => !photo.excluded);
+  const ready = included.filter(
+    (photo) => photo.file && photo.processed && !validateCorners(photo.corners),
+  ).length;
+  $("automaticSummary").textContent = pending.length
+    ? `${included.length} 页保留 · ${pending.length} 页待检查`
+    : `${included.length} 页保留 · ${ready} 页已就绪`;
   $("automaticReview").hidden = !pending.length;
   $("automaticReviewTitle").textContent = `需要检查 ${pending.length} 页`;
   const list = $("automaticIssues");
@@ -393,6 +401,10 @@ function renderPages() {
       const img = document.createElement("img");
       img.src = photo.thumb;
       img.alt = "";
+      img.width = 56;
+      img.height = 44;
+      img.loading = "lazy";
+      img.decoding = "async";
       open.append(img);
     }
     const text = document.createElement("span"),
@@ -500,8 +512,11 @@ function updatePreview() {
   $("showResult").setAttribute("aria-pressed", String(!showOriginal));
   const source = showOriginal ? originalUrl : photo?.result;
   img.hidden = !source;
-  if (source) img.src = source;
-  else img.removeAttribute("src");
+  if (source) {
+    img.src = source;
+    img.width = (showOriginal ? photo?.width : photo?.resultWidth) || 1400;
+    img.height = (showOriginal ? photo?.height : photo?.resultHeight) || 900;
+  } else img.removeAttribute("src");
   $("previewEmpty").hidden = !!source;
   $("previewEmpty").textContent =
     photo && !photo.file
@@ -1245,6 +1260,9 @@ async function generateReport() {
     link.download = `${name}.${format}`;
     link.textContent = `下载 ${format.toUpperCase()} · ${bytes(blob.size)}`;
     link.hidden = false;
+    $("downloadInfo").textContent =
+      `${name}.${format} · ${included.length} 页 · ${bytes(blob.size)}`;
+    $("downloadResult").hidden = false;
     message(
       `已生成 ${included.length} 页 ${format.toUpperCase()}，请点击下载并检查文件。${included.some((p) => p.automated) ? "部分页面由工具自动校正，请检查裁切是否完整。" : ""}${included.some((p) => !p.processed) ? "未确认页使用原图。" : ""}`,
     );
