@@ -9,7 +9,8 @@ test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设�
   await page.keyboard.press("Enter");
   await expect(page.locator("#mainContent")).toBeFocused();
   await page.locator("#importTitle").click();
-  for (const width of [1440, 820, 390]) {
+  await expect(page.locator(".overview")).toBeHidden();
+  for (const width of [1440, 820, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator("#add")).toBeVisible();
     await expect(page.locator("#phoneOpen")).toBeVisible();
@@ -29,6 +30,21 @@ test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设�
     });
   }
   await page.locator("#demo").click();
+  await expect(page.locator(".overview")).toBeVisible();
+  await expect(page.locator("#stepReview")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({
+    path: info.outputPath("review-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.screenshot({
+    path: info.outputPath("review-mobile.png"),
+    fullPage: true,
+  });
   await expect(page.locator("#autoOrganize")).toBeEnabled();
   await expect(page.locator("#automaticSummary")).toContainText("3 页保留");
   await page.locator("#autoOrganize").click();

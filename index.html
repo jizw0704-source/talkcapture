@@ -9,16 +9,13 @@
     />
     <title>报告拾光 · TalkCapture</title>
   </head>
-  <body>
+  <body data-stage="import" data-empty="true">
     <a class="skip-link" href="#mainContent">跳到主要内容</a>
     <header>
       <div class="brand">
         <h1 translate="no">报告拾光</h1>
         <span translate="no">TalkCapture</span>
       </div>
-      <span class="local-label">本机处理 · 原图保留</span>
-    </header>
-    <main id="mainContent" tabindex="-1">
       <nav class="steps" aria-label="整理步骤">
         <button
           id="stepImport"
@@ -34,6 +31,9 @@
           <span>3</span> 导出报告
         </button>
       </nav>
+      <span class="local-label">本机处理 · 原图保留</span>
+    </header>
+    <main id="mainContent" tabindex="-1">
       <div class="overview">
         <span id="counts">尚未导入照片</span
         ><button id="addMore" hidden>添加照片</button>
@@ -53,11 +53,8 @@
         aria-label="自动整理"
         hidden
       >
-        <div class="automatic-heading">
-          <h2>整批生成 PPT</h2>
-          <span id="automaticSummary" class="hint"></span>
-        </div>
         <div class="automatic-actions">
+          <span id="automaticSummary" class="automatic-summary"></span>
           <div>
             <button id="autoOrganize" class="primary">
               自动整理并生成 PPT
@@ -70,7 +67,7 @@
           </p>
         </div>
         <div id="automaticReview" hidden>
-          <h3 id="automaticReviewTitle" tabindex="-1">需要检查的页面</h3>
+          <h2 id="automaticReviewTitle" tabindex="-1">需要检查的页面</h2>
           <p class="hint">
             核对并确认这些页面，或将不需要的页面排除，再点击上方按钮继续生成。
           </p>
@@ -135,12 +132,10 @@
       >
         <div class="import-layout">
           <div class="intro">
-            <h2 id="importTitle" tabindex="-1">把报告照片整理成一份文件</h2>
-            <p>导入后自动寻找 PPT 画面，核对四角，再导出。</p>
-            <p class="import-note">
-              电脑选图，或用手机扫码传入。照片传完后，可以一次整理整批。
-            </p>
-            <button id="demo" class="quiet">体验示例</button>
+            <h2 id="importTitle" tabindex="-1">
+              把报告照片<br />整理成一份文件
+            </h2>
+            <p>自动校正，核对后导出 PPT 或 PDF。</p>
           </div>
           <div class="upload-area">
             <section
@@ -150,6 +145,22 @@
               role="button"
               aria-label="选择或拖入照片"
             >
+              <svg
+                class="upload-icon"
+                viewBox="0 0 24 24"
+                width="40"
+                height="40"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m4 17 5-5 4 4 4-6 3 5" />
+              </svg>
               <strong>拖入照片，或点击选择</strong
               ><span>JPEG、PNG、HEIC / HEIF</span
               ><small>最多 100 张 · 单张 30 MB</small>
@@ -169,22 +180,25 @@
             <p class="hint permission">请使用有权保存和处理的报告照片。</p>
           </div>
         </div>
-        <details id="importSettings" class="settings">
-          <summary>导入设置与项目管理</summary>
-          <div class="toolbar">
-            <label
-              ><input id="autoDetect" type="checkbox" checked /> 导入时自动找出
-              PPT</label
-            ><label
-              >初始页序
-              <select id="sort">
-                <option value="capture">拍摄时间优先</option>
-                <option value="selection">选择顺序</option>
-                <option value="name">文件名顺序</option>
-              </select></label
-            ><button id="clear">清空项目</button>
-          </div>
-        </details>
+        <div class="import-footer">
+          <button id="demo" class="quiet">体验示例</button>
+          <details id="importSettings" class="settings">
+            <summary>导入设置与项目管理</summary>
+            <div class="toolbar">
+              <label
+                ><input id="autoDetect" type="checkbox" checked />
+                导入时自动找出 PPT</label
+              ><label
+                >初始页序
+                <select id="sort">
+                  <option value="capture">拍摄时间优先</option>
+                  <option value="selection">选择顺序</option>
+                  <option value="name">文件名顺序</option>
+                </select></label
+              ><button id="clear">清空项目</button>
+            </div>
+          </details>
+        </div>
       </section>
       <section id="reviewScreen" aria-labelledby="reviewTitle" hidden>
         <div class="screen-heading">
@@ -358,7 +372,7 @@
               <button id="exclude" class="quiet">排除此页</button>
               <div class="actions">
                 <button id="goExport">去导出</button
-                ><button id="confirm">校正并确认</button>
+                ><button id="confirm" class="primary">校正并确认</button>
               </div>
             </div>
           </section>

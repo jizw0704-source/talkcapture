@@ -77,6 +77,8 @@ const button = (text: string, action: () => void) => {
 const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 
 function renderStage() {
+  document.body.dataset.stage = stage;
+  document.body.dataset.empty = String(!photos.length);
   for (const name of ["import", "review", "export"] as const) {
     $(`${name}Screen`).hidden = stage !== name;
     const id = `step${name[0].toUpperCase()}${name.slice(1)}`;
@@ -174,7 +176,10 @@ function setBusy(value: boolean) {
 }
 function renderAutomatic() {
   $("automaticPanel").hidden =
-    !photos.length || (stage === "export" && !automaticController);
+    !photos.length ||
+    (stage === "import" &&
+      !photos.some((photo) => photo.file && !photo.excluded)) ||
+    (stage === "export" && !automaticController);
   $("automaticPanel").setAttribute("aria-busy", String(!!automaticController));
   const start = $<HTMLButtonElement>("autoOrganize");
   start.disabled = busy || !photos.some((p) => p.file && !p.excluded);
