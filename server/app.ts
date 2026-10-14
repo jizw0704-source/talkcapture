@@ -57,7 +57,7 @@ server.on("error", (error) => {
 });
 server.listen(9015, "127.0.0.1", () =>
   console.log(
-    "学术报告照片整理助手：http://127.0.0.1:9015/\n手机接收只在点击“生成二维码”后开启。",
+    "报告拾光 · TalkCapture：http://127.0.0.1:9015/\n手机接收只在点击“生成二维码”后开启。",
   ),
 );
 let stopping = false;

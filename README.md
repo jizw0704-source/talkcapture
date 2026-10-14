@@ -1,4 +1,6 @@
-# 学术报告照片整理助手
+# 报告拾光 · TalkCapture
+
+报告照片整理助手
 
 [中文](README.md) · [English](README.en.md)
 
@@ -51,7 +53,7 @@ pnpm start
 | [后续计划与验收](docs/roadmap.md)     | 真实批量照片、真机、大图和文件兼容的验收清单 |
 | [工程约定](AGENTS.md)                 | 维护时必须遵守的产品与数据保护规则           |
 
-对外介绍与名称候选见 [中英文项目介绍](docs/introduction.md)。英文入口见 [English README](README.en.md) 和 [English user guide](docs/usage.en.md)。工具界面目前为中文，英文说明提供对应按钮名称。
+正式名称与对外介绍见 [中英文项目介绍](docs/introduction.md)。英文入口见 [English README](README.en.md) 和 [English user guide](docs/usage.en.md)。工具界面目前为中文，英文说明提供对应按钮名称。
 
 ## 开发检查
 

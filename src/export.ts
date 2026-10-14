@@ -35,10 +35,13 @@ export async function exportReport(
     pptx.defineLayout({ name: "REPORT", width: pageW, height: pageH });
     pptx.layout = "REPORT";
     pptx.title = options.name;
-    pptx.author = "学术报告照片整理助手";
+    pptx.author = "报告拾光 · TalkCapture";
   }
   if (pdf)
-    pdf.setProperties({ title: options.name, creator: "学术报告照片整理助手" });
+    pdf.setProperties({
+      title: options.name,
+      creator: "报告拾光 · TalkCapture",
+    });
   for (let i = 0; i < photos.length; i++) {
     check();
     const photo = photos[i];

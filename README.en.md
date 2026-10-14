@@ -1,10 +1,12 @@
-# Report Photo Organizer
+# TalkCapture
+
+Report Photo Organizer
 
 [中文](README.md) · [English](README.en.md)
 
 Turn photos of presentation slides into an image-based PowerPoint deck or PDF.
 
-Built for people attending academic talks, research presentations, and conferences, Report Photo Organizer helps collect slide photos, locate the projected screen, correct perspective, review page order, and export a document for later reference. It supports desktop import, optional phone transfer over a trusted local network, and batch processing while preserving original files and manual adjustments.
+Built for people attending academic talks, research presentations, and conferences, TalkCapture helps collect slide photos, locate the projected screen, correct perspective, review page order, and export a document for later reference. It supports desktop import, optional phone transfer over a trusted local network, and batch processing while preserving original files and manual adjustments.
 
 The current version is **0.1.0, a local development release**. The core workflow is implemented. Real photo batches, physical phone workflows, large high-resolution collections, and compatibility with everyday presentation software still require acceptance testing. It has not been publicly deployed or integrated with Pulse.
 
@@ -46,7 +48,7 @@ Open <http://127.0.0.1:9015/?auto-crop=1>. The interface is currently in Chinese
 | Document                                          | Contents                                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [English user guide](docs/usage.en.md)            | Manual and batch workflows, phone pairing, recovery, image quality, and limits |
-| [Bilingual introduction](docs/introduction.md)    | Reusable Chinese and English descriptions and proposed product names           |
+| [Bilingual introduction](docs/introduction.md)    | Reusable Chinese and English descriptions and confirmed product naming         |
 | [Chinese user guide](docs/usage.md)               | Detailed current product behavior                                              |
 | [Engineering guide, Chinese](docs/development.md) | Module map, processing paths, dependency patch, and local services             |
 | [Validation record, Chinese](docs/validation.md)  | Development checks and acceptance boundaries                                   |
