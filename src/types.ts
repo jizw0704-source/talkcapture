@@ -1,0 +1,54 @@
+import type { Point } from "./geometry";
+import type { SlideDetection } from "./detection";
+export type Photo = {
+  id: string;
+  name: string;
+  size: number;
+  modified: number;
+  captured: number | null;
+  selection: number;
+  format: string;
+  width: number;
+  height: number;
+  rotation: number;
+  corners: Point[];
+  brightness: number;
+  contrast: number;
+  processed: boolean;
+  automated?: boolean;
+  excluded: boolean;
+  warnings: string[];
+  detection?: SlideDetection["status"];
+  file?: File;
+  thumb?: string;
+  result?: string;
+  resultWidth?: number;
+  resultHeight?: number;
+};
+export type SavedProject = {
+  version: 1;
+  name: string;
+  aspect: string;
+  quality: string;
+  photos: Photo[];
+};
+export type ProcessRequest = {
+  id: number;
+  blob: Blob;
+  rotation: number;
+  corners: Point[];
+  maxEdge: number;
+  brightness: number;
+  contrast: number;
+  kind: "warp" | "plain" | "detect";
+};
+export type ProcessResult = {
+  id: number;
+  blob?: Blob;
+  width?: number;
+  height?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  detection?: SlideDetection;
+  error?: string;
+};

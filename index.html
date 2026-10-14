@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="在本机整理报告照片，核对画面后导出 PPTX 或 PDF。"
+    />
+    <title>学术报告照片整理助手</title>
+  </head>
+  <body>
+    <header>
+      <h1>学术报告照片整理助手</h1>
+      <span class="local-label">本机处理 · 原图保留</span>
+    </header>
+    <main>
+      <nav class="steps" aria-label="整理步骤">
+        <button
+          id="stepImport"
+          aria-controls="importScreen"
+          aria-current="step"
+        >
+          <span>1</span> 导入照片
+        </button>
+        <button id="stepReview" aria-controls="reviewScreen" disabled>
+          <span>2</span> 核对画面
+        </button>
+        <button id="stepExport" aria-controls="exportScreen" disabled>
+          <span>3</span> 导出报告
+        </button>
+      </nav>
+      <div class="overview">
+        <span id="counts">尚未导入照片</span
+        ><button id="addMore" hidden>添加照片</button>
+      </div>
+      <div id="recovery" class="feedback" hidden></div>
+      <div
+        id="status"
+        class="feedback"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <progress id="progress" max="100" value="0" hidden></progress>
+      <section
+        id="automaticPanel"
+        class="automatic-panel"
+        aria-label="自动整理"
+        hidden
+      >
+        <div class="automatic-actions">
+          <div>
+            <button id="autoOrganize" class="primary">
+              自动整理并生成 PPT
+            </button>
+            <button id="cancelAutomatic" hidden>取消自动整理</button>
+          </div>
+          <p class="hint">
+            照片传完后点击。沿用当前页序和调整，批量校正并生成图片版
+            PPT；不确定的页面集中检查。
+          </p>
+        </div>
+        <div id="automaticReview" hidden>
+          <h3 id="automaticReviewTitle" tabindex="-1">需要检查的页面</h3>
+          <p class="hint">
+            核对并确认这些页面，或将不需要的页面排除，再点击上方按钮继续生成。
+          </p>
+          <ul id="automaticIssues" class="automatic-issues"></ul>
+        </div>
+      </section>
+      <section
+        id="phonePanel"
+        class="phone-panel"
+        aria-label="手机扫码传图"
+        hidden
+      >
+        <div class="section-heading">
+          <h2>手机扫码传图</h2>
+          <button id="phoneHide" data-phone-control>关闭入口</button>
+        </div>
+        <p>
+          手机与电脑连接同一个
+          Wi-Fi。手机申请连接后，先在这里允许，再从相册选择照片。
+        </p>
+        <div class="toolbar">
+          <label
+            >电脑网络
+            <select id="phoneNetwork" aria-label="电脑网络"></select></label
+          ><button id="phoneRefresh" data-phone-control>重新检测网络</button
+          ><button id="phoneStart" data-phone-control class="primary">
+            生成二维码</button
+          ><button id="phoneApprove" data-phone-control class="primary" hidden>
+            允许这台手机</button
+          ><button id="phoneStop" data-phone-control hidden>停止传图</button>
+        </div>
+        <div id="phoneCode" class="phone-code" hidden>
+          <img
+            id="phoneQr"
+            alt="用手机扫描此二维码，申请向当前电脑传照片"
+            width="256"
+            height="256"
+          />
+          <div>
+            <p id="phoneRemaining"></p>
+            <label for="phoneLink">扫码打不开时，在手机浏览器打开这个地址</label
+            ><input id="phoneLink" readonly aria-label="手机上传地址" />
+            <p class="hint">
+              仅接收一台获准手机；10
+              分钟后过期。照片接收后自动加入当前报告，不会删除手机原图。
+            </p>
+          </div>
+        </div>
+        <p id="phoneStatus" role="status" aria-live="polite">
+          尚未开启手机传图。
+        </p>
+        <p class="hint">
+          不经过云端。局域网 HTTP 传输未加密，请只在可信 Wi-Fi
+          下使用，不要转发二维码。暂存文件导入后清理，停止或过期后清空。
+        </p>
+      </section>
+
+      <section
+        id="importScreen"
+        class="import-screen"
+        aria-labelledby="importTitle"
+      >
+        <div class="intro">
+          <h2 id="importTitle" tabindex="-1">把报告照片整理成一份文件</h2>
+          <p>导入后自动寻找 PPT 画面，核对四角，再导出。</p>
+        </div>
+        <section
+          id="dropzone"
+          class="dropzone"
+          tabindex="0"
+          role="button"
+          aria-label="选择或拖入照片"
+        >
+          <strong>拖入照片，或点击选择</strong
+          ><span>JPEG、PNG、HEIC / HEIF</span
+          ><small>最多 100 张 · 单张 30 MB</small>
+        </section>
+        <div class="import-actions">
+          <button id="add" class="primary">选择照片</button
+          ><button id="phoneOpen" data-phone-control>手机传图</button
+          ><button id="demo" class="quiet">体验示例</button
+          ><button id="continueReview" hidden>继续核对</button>
+        </div>
+        <input
+          id="files"
+          type="file"
+          accept=".jpg,.jpeg,.png,.heic,.heif"
+          multiple
+          hidden
+        />
+        <p class="hint permission">请使用有权保存和处理的报告照片。</p>
+        <details id="importSettings" class="settings">
+          <summary>导入设置与项目管理</summary>
+          <div class="toolbar">
+            <label
+              ><input id="autoDetect" type="checkbox" checked /> 导入时自动找出
+              PPT</label
+            ><label
+              >初始页序
+              <select id="sort">
+                <option value="capture">拍摄时间优先</option>
+                <option value="selection">选择顺序</option>
+                <option value="name">文件名顺序</option>
+              </select></label
+            ><button id="clear">清空项目</button>
+          </div>
+        </details>
+      </section>
+      <section id="reviewScreen" aria-labelledby="reviewTitle" hidden>
+        <div class="screen-heading">
+          <h2 id="reviewTitle" tabindex="-1">核对画面</h2>
+          <span class="muted">确认每页保留的内容</span>
+        </div>
+        <div class="workspace">
+          <aside class="pages" aria-label="照片页序">
+            <div class="section-heading">
+              <h3>页面</h3>
+              <span id="pageCount">0 页</span>
+            </div>
+            <p class="hint">拖动照片调整页序</p>
+            <details id="pageTools" class="settings">
+              <summary>页序与批量操作</summary>
+              <div class="bulk">
+                <button id="excludeSelected">排除勾选</button
+                ><button id="restoreSelected">恢复勾选</button>
+              </div>
+              <div class="bulk">
+                <label
+                  >移动到
+                  <input
+                    id="movePosition"
+                    type="number"
+                    min="1"
+                    value="1" /></label
+                ><button id="moveSelected">移动勾选页</button>
+              </div>
+            </details>
+            <div id="pageList" class="page-list">
+              <p class="empty-small">导入后查看页面。</p>
+            </div>
+          </aside>
+          <section class="editor" aria-label="四点照片编辑器">
+            <div class="section-heading">
+              <div class="photo-heading">
+                <h3 id="currentName">四点校正</h3>
+                <span id="pageMeta" class="muted">选择一张照片开始</span>
+              </div>
+              <div class="actions">
+                <button id="prev" aria-label="上一张">上一张</button
+                ><button id="next" aria-label="下一张">下一张</button>
+              </div>
+            </div>
+            <div class="toolbar editor-toolbar">
+              <button
+                id="autoFind"
+                title="重新识别成功会替换当前四角，可撤销；仍需确认。"
+              >
+                自动找出 PPT</button
+              ><button id="cancelDetect" hidden>取消识别</button
+              ><button id="undo">撤销</button
+              ><button id="rotate">旋转 90°</button
+              ><label
+                >缩放
+                <select id="zoom">
+                  <option value="1">适应窗口</option>
+                  <option value="1.5">150%</option>
+                  <option value="2">200%</option>
+                  <option value="3">300%</option>
+                </select></label
+              >
+            </div>
+            <p
+              id="cornerPrompt"
+              class="prompt"
+              role="status"
+              aria-live="polite"
+            >
+              核对四角后确认。
+            </p>
+            <div class="image-pair">
+              <div class="source-pane">
+                <div class="pane-heading">
+                  原图选区<span class="hint">拖动四角微调</span>
+                </div>
+                <div id="canvasViewport" class="canvas-viewport">
+                  <canvas
+                    id="editorCanvas"
+                    tabindex="0"
+                    aria-label="照片与四个裁切点"
+                  ></canvas>
+                  <div id="canvasEmpty" class="canvas-empty">
+                    重新选择原图后开始核对。
+                  </div>
+                </div>
+              </div>
+              <div id="previewDetails" class="preview-pane">
+                <div class="preview-tabs">
+                  <button id="showResult" aria-pressed="true">校正预览</button
+                  ><button id="showOriginal" aria-pressed="false">
+                    原图对比
+                  </button>
+                </div>
+                <div class="output-page" id="outputPage">
+                  <img id="previewImage" alt="当前页的处理预览" hidden /><span
+                    id="previewEmpty"
+                    >点选四个角后生成预览。</span
+                  >
+                </div>
+                <p id="previewMeta" class="hint"></p>
+              </div>
+            </div>
+            <details id="editTools" class="settings">
+              <summary>更多调整</summary>
+              <div class="toolbar">
+                <button id="reset">重新点选</button
+                ><button id="whole">整图四角</button
+                ><button id="inherit">沿用上一张</button>
+              </div>
+              <div class="point-tools">
+                <label
+                  >控制点
+                  <select id="pointSelect">
+                    <option value="0">1 · 左上</option>
+                    <option value="1">2 · 右上</option>
+                    <option value="2">3 · 右下</option>
+                    <option value="3">4 · 左下</option>
+                  </select></label
+                ><label
+                  >X
+                  <input
+                    id="pointX"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                  %</label
+                ><label
+                  >Y
+                  <input
+                    id="pointY"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                  %</label
+                ><button id="applyPoint">更新坐标</button>
+              </div>
+              <div class="toolbar">
+                <label
+                  >亮度
+                  <input
+                    id="brightness"
+                    type="range"
+                    min="-25"
+                    max="25"
+                    value="0" /></label
+                ><label
+                  >对比度
+                  <input
+                    id="contrast"
+                    type="range"
+                    min="-20"
+                    max="30"
+                    value="0" /></label
+                ><label
+                  ><input id="autoNext" type="checkbox" checked />
+                  确认后下一张</label
+                >
+              </div>
+              <p class="hint">
+                方向键切换页 · Enter 确认 · 选中控制点后方向键微调，Shift
+                加大步长 · 放大后拖动画布
+              </p>
+            </details>
+            <div class="confirm-bar">
+              <button id="exclude" class="quiet">排除此页</button>
+              <div class="actions">
+                <button id="goExport">去导出</button
+                ><button id="confirm">校正并确认</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+      <section
+        id="exportScreen"
+        class="export-panel"
+        aria-label="导出设置"
+        aria-labelledby="exportTitle"
+        hidden
+      >
+        <div class="section-heading">
+          <h2 id="exportTitle" tabindex="-1">导出报告</h2>
+          <span id="exportSummary" class="muted">导入后可导出</span>
+        </div>
+        <div class="export-fields">
+          <label class="report-name"
+            >报告名称
+            <input id="projectName" value="学术报告" maxlength="80" /></label
+          ><label
+            >格式
+            <select id="format">
+              <option value="pptx">PowerPoint · PPTX</option>
+              <option value="pdf">PDF</option>
+            </select></label
+          ><label
+            >页面
+            <select id="aspect">
+              <option value="wide">16:9</option>
+              <option value="standard">4:3</option>
+            </select></label
+          ><label
+            >质量
+            <select id="quality">
+              <option value="quality">清晰优先</option>
+              <option value="compact">体积优先</option>
+            </select></label
+          >
+        </div>
+        <p id="exportCheck" class="export-check"></p>
+        <details id="exportOptions" class="settings">
+          <summary>更多导出选项</summary>
+          <label
+            ><input id="allowOriginal" type="checkbox" />
+            未确认页按原图导出</label
+          >
+          <p id="estimate" class="hint">图片保持比例，完整放入页面。</p>
+        </details>
+        <div class="confirm-bar">
+          <button id="backReview">返回核对</button>
+          <div class="actions">
+            <button id="export" class="primary">生成文件</button
+            ><button id="cancel" hidden>取消导出</button
+            ><a id="download" class="download" hidden>下载文件</a>
+          </div>
+        </div>
+      </section>
+      <details class="help">
+        <summary>本地保存、隐私与兼容说明</summary>
+        <p>
+          自动定位仅按图像边缘寻找矩形画面，不理解 PPT
+          内容；暗光、反光、遮挡和多个屏幕可能导致错误。逐页模式需要确认；主动点击“自动整理并生成
+          PPT”后，有明确候选的页面会自动校正，不确定的页面集中检查。自动校正不代表人工确认，请检查下载结果。识别失败不会删除照片，最终导出仍从原图生成。
+        </p>
+        <p>
+          编辑参数保存在当前浏览器中；刷新后需重新选择同一批原始照片来恢复。文件名、大小及修改时间用于本地匹配；同名照片不会被自动删除。清空项目会删除保存的编辑参数。
+        </p>
+        <p>
+          照片校正、缩略图和输出文件均在浏览器本地生成。可选的手机传图通过局域网暂存到这台电脑，不经过云端，没有分析埋点。HEIC
+          / HEIF
+          使用本地解码器，无法解码的文件会逐项列出。严重模糊、遮挡和过曝不能恢复缺失内容。
+        </p>
+        <p>
+          建议电脑端 Chrome / Edge /
+          Safari。当前为本地开发版，多浏览器、真实大批量和 HEIC
+          机型覆盖仍需验收；不支持的浏览器会提前提示。
+        </p>
+      </details>
+    </main>
+    <dialog id="clearDialog">
+      <form method="dialog">
+        <h2>清空当前项目？</h2>
+        <p>移除本机保存的编辑参数和预览；电脑中的原始照片保留。</p>
+        <div class="actions">
+          <button value="cancel">保留项目</button
+          ><button value="clear" class="primary">清空项目</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

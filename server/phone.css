@@ -1,0 +1,156 @@
+:root {
+  font-family:
+    MiSans,
+    -apple-system,
+    BlinkMacSystemFont,
+    "PingFang SC",
+    sans-serif;
+  color: #101010;
+  background: #f7f7f7;
+  font-size: 16px;
+  line-height: 1.6;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 540px;
+  margin: auto;
+  padding: 32px 20px;
+}
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 8px 0 24px;
+}
+p {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.eyebrow,
+.muted {
+  color: #646464;
+  font-size: 13px;
+}
+section {
+  padding: 24px 0;
+  border-top: 1px solid #e4e4e4;
+}
+button,
+.picker {
+  position: relative;
+  font: inherit;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #888;
+  background: white;
+  color: #101010;
+  cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.primary {
+  color: #fff;
+  background: #101010;
+  border-color: #101010;
+}
+.picker {
+  width: 100%;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+button:disabled,
+.picker:has(input:disabled) {
+  background: #ededed;
+  color: #646464;
+  cursor: not-allowed;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+button:active,
+.picker:active {
+  filter: brightness(0.9);
+}
+:focus-visible {
+  outline: 3px solid #567700;
+  outline-offset: 3px;
+}
+.picker:focus-within {
+  outline: 3px solid #567700;
+  outline-offset: 3px;
+}
+progress {
+  width: 100%;
+  height: 12px;
+  accent-color: #101010;
+  margin-top: 24px;
+}
+ol {
+  padding-left: 24px;
+}
+li {
+  padding: 12px 0;
+  border-top: 1px solid #e4e4e4;
+  overflow-wrap: anywhere;
+}
+li span {
+  display: block;
+  color: #646464;
+  font-size: 13px;
+}
+details {
+  border-top: 1px solid #e4e4e4;
+  padding-top: 16px;
+  color: #4a4a4a;
+}
+summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+.error {
+  color: #a02c2c;
+}
+[hidden] {
+  display: none !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  button:hover,
+  .picker:hover {
+    border-color: #101010;
+  }
+}
+@media (forced-colors: active) {
+  button,
+  .picker {
+    border: 1px solid ButtonText;
+  }
+  .primary {
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  :focus-visible {
+    outline-color: Highlight;
+  }
+  .picker:focus-within {
+    outline-color: Highlight;
+  }
+}
