@@ -38,7 +38,7 @@ pnpm start
 
 打开 <http://127.0.0.1:9015/?auto-crop=1>。首次可点击“体验示例”，示例由程序生成。
 
-1. 电脑选择照片，或点击“手机传图”，扫码并在电脑批准连接后传入。
+1. 首选点击“手机传图”，扫码并在电脑批准连接后传入；也可点击“从电脑选择”。
 2. 传完后点击“自动整理并生成 PPT”。保留当前页序和已有人工调整。
 3. 如果出现“需要检查”，核对对应页面、确认或排除，然后继续生成。
 4. 下载并检查文件。需要 PDF 或逐页操作时，使用“核对画面 → 导出报告”。
@@ -65,12 +65,11 @@ pnpm format:check
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm start
-# 另一个终端，复用已启动的构建服务
 pnpm test:browser
+pnpm start
 ```
 
-修改代码时运行 `pnpm dev`；`pnpm preview` 与 `pnpm start` 相同。三个入口共用 9015 端口，不能同时启动。浏览器测试需要 Playwright Chromium；没有现有服务时测试配置会启动开发服务。独立 ESLint 尚未配置。
+修改代码时运行 `pnpm dev`；`pnpm preview` 与 `pnpm start` 相同。三个入口共用 9015 端口，不能同时启动。浏览器测试需要 Playwright Chromium；测试自动在 9025/9026 启动独立构建服务，不复用用户的传图会话。独立 ESLint 尚未配置。
 
 ## 数据与仓库范围
 

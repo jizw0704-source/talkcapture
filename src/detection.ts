@@ -3,6 +3,7 @@ import { validateCorners, type Point } from "./geometry.ts";
 export type SlideDetection = {
   status: "suggested" | "not_found" | "ambiguous";
   corners: Point[];
+  source?: "local-correction";
 };
 type Line = { a: number; b: number; r: number; votes: number };
 type Edge = { x: number; y: number; angle: number };
@@ -94,7 +95,7 @@ export function detectSlide(
       directions[i] = (Math.round(Math.atan2(gy, gx) / radians) + 360) % 180;
       maximum = Math.max(maximum, magnitude[i]);
     }
-  const threshold = Math.max(28, maximum * 0.04),
+  const threshold = Math.max(8, Math.min(28, maximum * 0.25)),
     edges: Edge[] = [];
   for (let y = 2; y < height - 2; y++)
     for (let x = 2; x < width - 2; x++) {
@@ -125,7 +126,7 @@ export function detectSlide(
       votes[angle * bins + r]++;
     }
   const peaks: { angle: number; r: number; votes: number }[] = [];
-  const minVotes = Math.max(16, (Math.min(width, height) * 0.16) / stride);
+  const minVotes = Math.max(16, (Math.min(width, height) * 0.12) / stride);
   for (let angle = 0; angle < 180; angle++)
     for (let r = 1; r < bins - 1; r++) {
       const i = angle * bins + r;
@@ -187,7 +188,7 @@ export function detectSlide(
         dot = a.a * b.a + a.b * b.b;
       if (
         Math.abs(dot) < Math.cos(35 * radians) ||
-        Math.abs(a.r - (dot < 0 ? -b.r : b.r)) < Math.min(width, height) * 0.25
+        Math.abs(a.r - (dot < 0 ? -b.r : b.r)) < Math.min(width, height) * 0.18
       )
         continue;
       const crossing = intersection(a, b);
@@ -250,7 +251,7 @@ export function detectSlide(
             0,
           ),
         ) / 2;
-      if (area < 0.12 || area > 0.95) continue;
+      if (area < 0.08 || area > 0.95) continue;
       const lengths = pixel.map((p, k) => distance(p, pixel[(k + 1) % 4]));
       const ratio =
         Math.max(lengths[0], lengths[2]) / Math.max(lengths[1], lengths[3]);

@@ -148,7 +148,9 @@ test("手机损坏照片被明确拒绝，新二维码重新配对，上传中�
       buffer: Buffer.from([255, 216, 255, 1, 2, 3, 4, 5]),
     });
     await mobile.locator("#upload").click();
-    await expect(mobile.locator("#list")).toContainText("电脑未能导入");
+    await expect(mobile.locator("#list")).toContainText(
+      "照片无法解码，请检查文件是否损坏。",
+    );
     await expect(page.locator(".page-row")).toHaveCount(0);
     await page.locator("#phoneStop").click();
     await expect(page.locator("#phoneStart")).toBeVisible();
@@ -172,6 +174,214 @@ test("手机损坏照片被明确拒绝，新二维码重新配对，上传中�
     await mobile.locator("#retry").click();
     await expect(page.locator(".page-row")).toHaveCount(1);
     await expect(mobile.locator("#list")).toContainText("电脑已导入");
+    await mobile.locator("#filter").selectOption("review");
+    await expect(mobile.locator("#list li:visible")).toHaveCount(1);
+    await expect(mobile.locator("#list li:visible")).toContainText(
+      "边界需在电脑上核对",
+    );
+    await expect(page.locator("#importReviewSummary")).toContainText(
+      "1 张边界待核对",
+    );
+  } finally {
+    await page
+      .locator("#phoneHide")
+      .click()
+      .catch(() => undefined);
+    await context.close();
+  }
+});
+
+test("手机批量上传遇到队列繁忙会等待重试，十二张均导入", async ({
+  page,
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const mobile = await context.newPage();
+  try {
+    await connect(page, mobile);
+    let attempts = 0;
+    await mobile.route("**/api/upload", async (route) => {
+      attempts++;
+      if (attempts === 1)
+        await route.fulfill({
+          status: 429,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "电脑有较多待导入照片，请稍后重试。" }),
+        });
+      else await route.continue();
+    });
+    const buffer = await image(page, true);
+    await mobile.locator("#photos").setInputFiles(
+      Array.from({ length: 12 }, (_, i) => ({
+        name: `连续上传${i + 1}.jpg`,
+        mimeType: "image/jpeg",
+        buffer,
+      })),
+    );
+    await mobile.locator("#upload").click();
+    await expect(page.locator(".page-row")).toHaveCount(12, { timeout: 90000 });
+    await expect(
+      mobile.locator("#list li").filter({ hasText: "电脑已导入" }),
+    ).toHaveCount(12, { timeout: 30000 });
+    expect(attempts).toBeGreaterThan(12);
+    await page.locator("#phoneStop").click();
+  } finally {
+    await context.close();
+  }
+});
+
+test("失败项保留缩略图和原因，其他完成后集中提醒并仅重试失败项", async ({
+  page,
+  browser,
+}, info) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const mobile = await context.newPage();
+  try {
+    await connect(page, mobile);
+    let fail = true;
+    await mobile.route("**/api/upload", (route) => {
+      if (route.request().headers()["x-photo-name"] === "failed.jpg" && fail) {
+        fail = false;
+        return route.abort();
+      }
+      return route.continue();
+    });
+    const buffer = await image(page, true);
+    await mobile.locator("#photos").setInputFiles(
+      ["good1.jpg", "failed.jpg", "good2.jpg"].map((name) => ({
+        name,
+        mimeType: "image/jpeg",
+        buffer,
+      })),
+    );
+    await mobile.locator("#upload").click();
+    await expect(page.locator(".page-row")).toHaveCount(2);
+    await expect(mobile.locator("#failureNotice")).toBeVisible();
+    await expect(mobile.locator("#failureHeading")).toContainText(
+      "还有 1 张需要重传",
+    );
+    await expect(mobile.locator("#filter")).toHaveValue("failed");
+    await expect(mobile.locator("#list li:visible")).toHaveCount(1);
+    await expect(mobile.locator("#list li:visible")).toContainText(
+      "failed.jpg",
+    );
+    await expect(mobile.locator("#list li:visible")).toContainText("网络中断");
+    await expect(mobile.locator("#list li:visible img")).toBeVisible();
+    for (const width of [390, 320]) {
+      await mobile.setViewportSize({ width, height: 844 });
+      expect(
+        await mobile.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+        ),
+      ).toBe(true);
+      await mobile.screenshot({
+        path: info.outputPath(`phone-failed-${width}.png`),
+        fullPage: true,
+      });
+    }
+    await mobile.getByRole("button", { name: "只重试这张" }).click();
+    await expect(page.locator(".page-row")).toHaveCount(3);
+    await expect(mobile.locator("#failureNotice")).toBeHidden();
+    await expect(mobile.locator("#batchCounts")).toContainText("已导入 3");
+    await mobile.locator("#filter").selectOption("all");
+    await expect(mobile.locator("#list li")).toHaveCount(3);
+    await mobile.emulateMedia({
+      forcedColors: "active",
+      reducedMotion: "reduce",
+    });
+    await expect(mobile.locator("#filter")).toBeVisible();
+  } finally {
+    await page
+      .locator("#phoneHide")
+      .click()
+      .catch(() => undefined);
+    await context.close();
+  }
+});
+
+test("连接过期时等待导入的照片标明结果未确认，不遗留无限等待", async ({
+  page,
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  const mobile = await context.newPage();
+  try {
+    await connect(page, mobile);
+    await page.route("**/api/phone/ack/**", (route) => route.abort());
+    let expired = false;
+    await mobile.route("**/api/status", (route) =>
+      expired
+        ? route.fulfill({
+            status: 410,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "连接已过期" }),
+          })
+        : route.continue(),
+    );
+    await mobile.locator("#photos").setInputFiles({
+      name: "pending.jpg",
+      mimeType: "image/jpeg",
+      buffer: await image(page, true),
+    });
+    await mobile.locator("#upload").click();
+    await expect(mobile.locator("#list")).toContainText("等待导入");
+    expired = true;
+    await expect(mobile.locator("#list")).toContainText("导入结果未确认");
+    await expect(mobile.locator("#failureNotice")).toBeVisible();
+    await expect(mobile.locator("#batchCounts")).toContainText("待完成 0");
+  } finally {
+    await page
+      .locator("#phoneHide")
+      .click()
+      .catch(() => undefined);
+    await context.close();
+  }
+});
+
+test("上传中连接失效仍显示失效原因，不被取消提示覆盖", async ({
+  page,
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  const mobile = await context.newPage();
+  try {
+    await connect(page, mobile);
+    let expired = false;
+    await mobile.route("**/api/upload", () => {});
+    await mobile.route("**/api/status", (route) =>
+      expired
+        ? route.fulfill({
+            status: 410,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "连接已过期" }),
+          })
+        : route.continue(),
+    );
+    await mobile.locator("#photos").setInputFiles({
+      name: "sending.jpg",
+      mimeType: "image/jpeg",
+      buffer: await image(page, true),
+    });
+    await mobile.locator("#upload").click();
+    await expect(mobile.locator("#list")).toContainText("上传中");
+    expired = true;
+    await expect(mobile.locator("#list")).toContainText(
+      "连接已失效，导入结果未确认",
+    );
+    await expect(mobile.locator("#failureNotice")).toBeVisible();
+    await expect(mobile.locator("#batchCounts")).toContainText("待完成 0");
   } finally {
     await page
       .locator("#phoneHide")

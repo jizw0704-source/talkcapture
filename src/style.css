@@ -1028,3 +1028,28 @@ dialog::backdrop {
     border-color: HighlightText;
   }
 }
+
+.issue-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
+  margin: 12px 0 24px;
+}
+.issue-list button {
+  text-align: left;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.learning-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.learning-controls p {
+  flex-basis: 100%;
+  margin: 0;
+}

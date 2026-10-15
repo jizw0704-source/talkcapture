@@ -1,4 +1,14 @@
 import "./style.css";
+import { suggestReportName } from "./naming";
+import {
+  sceneFeature,
+  loadCorrections,
+  saveCorrections,
+  rememberCorrection,
+  clearCorrections,
+  learningEnabled,
+  setLearningEnabled,
+} from "./learning";
 import {
   fullCorners,
   rotatedCorners,
@@ -26,6 +36,42 @@ let photos: Photo[] = [],
   busy = false,
   detecting = false,
   selectedPoint = -1;
+let lastImportError = "";
+let generatedName = "学术报告";
+function updateSuggestedName(force = false) {
+  if (
+    !force &&
+    input("projectName").value !== generatedName &&
+    input("projectName").value !== "学术报告"
+  )
+    return;
+  generatedName = suggestReportName(photos);
+  input("projectName").value = generatedName;
+}
+function renderLearning() {
+  $("learningStatus").textContent = learningEnabled()
+    ? `已记住 ${loadCorrections().length} 条纠正经验；仅对相似构图提供待核对选区，不训练通用模型。`
+    : "已关闭，不保存或使用纠正经验。";
+}
+input("learnCorrections").checked = learningEnabled();
+input("learnCorrections").onchange = () => {
+  try {
+    setLearningEnabled(input("learnCorrections").checked);
+    renderLearning();
+  } catch {
+    message("无法保存本地学习设置。", true);
+  }
+};
+$("clearLearning").onclick = () => {
+  try {
+    clearCorrections();
+    renderLearning();
+  } catch {
+    message("无法清除本地纠正经验。", true);
+  }
+};
+renderLearning();
+let bitmapPhotoId = "";
 let bitmap: ImageBitmap | undefined,
   displayToken = 0,
   previewToken = 0;
@@ -94,6 +140,7 @@ function renderStage() {
 function showStage(next: Stage, focus = true) {
   if (busy || (next !== "import" && !photos.length)) return;
   stage = next;
+  if (next === "export") updateSuggestedName();
   renderStage();
   draw();
   if (focus) $(`${next}Title`).focus();
@@ -131,6 +178,7 @@ function save() {
 }
 function history(photo: Photo) {
   photo.detection = undefined;
+  photo.learnedSuggestion = undefined;
   const list = histories.get(photo.id) || [];
   list.push(copy(photo.corners));
   if (list.length > 30) list.shift();
@@ -320,6 +368,27 @@ $("cancelAutomatic").onclick = () => {
 };
 
 function renderSummary() {
+  const needsReview = photos.filter(
+    (p) =>
+      p.file &&
+      !p.excluded &&
+      !p.processed &&
+      (p.corners.length !== 4 || p.learnedSuggestion),
+  );
+  $("importReview").hidden = !needsReview.length;
+  $("importReviewSummary").textContent =
+    `${needsReview.length} 张边界待核对 · 点击直接定位照片`;
+  $("importReviewList").replaceChildren();
+  for (const photo of needsReview) {
+    const control = document.createElement("button");
+    control.textContent = `${photo.name} · ${photo.learnedSuggestion ? "经验选区需确认" : "需手动选四角"}`;
+    control.onclick = () => {
+      showStage("review", false);
+      void openPhoto(photo.id);
+    };
+    control.disabled = busy;
+    $("importReviewList").append(control);
+  }
   const included = photos.filter((p) => !p.excluded),
     processed = included.filter((p) => p.processed);
   const automated = processed.filter((p) => p.automated).length;
@@ -345,7 +414,7 @@ function renderSummary() {
     ? "重新选择原图"
     : photos.length
       ? "继续添加照片"
-      : "选择照片";
+      : "从电脑选择";
   renderStage();
   $<HTMLButtonElement>("export").disabled = busy || !included.length;
   const compact = select("quality").value === "compact";
@@ -424,11 +493,13 @@ function renderPages() {
         ? "已排除 · 原图保留"
         : photo.processed
           ? "已确认"
-          : photo.detection === "suggested"
-            ? "自动定位 · 待确认"
-            : photo.detection
-              ? "需手动选四角"
-              : "待校正 / 待确认";
+          : photo.learnedSuggestion
+            ? "经验选区 · 待核对"
+            : photo.detection === "suggested"
+              ? "自动定位 · 待确认"
+              : photo.detection
+                ? "需手动选四角"
+                : "待校正 / 待确认";
     if (photo.file && !photo.excluded && photo.processed && photo.automated)
       status.textContent = "自动校正 · 建议检查";
     text.append(title, status);
@@ -503,9 +574,11 @@ function render() {
           ? photo.automated
             ? "当前页已自动校正，建议检查完整内容。可微调后人工确认。"
             : "当前页已确认。拖动控制点后需重新确认。"
-          : photo.detection === "suggested"
-            ? "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。"
-            : "四角已就绪，可拖动微调，然后校正并确认。");
+          : photo.learnedSuggestion
+            ? "本地纠正经验给出的参考选区，请核对四角后人工确认。"
+            : photo.detection === "suggested"
+              ? "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。"
+              : "四角已就绪，可拖动微调，然后校正并确认。");
   syncPoint();
   draw();
   updatePreview();
@@ -515,10 +588,11 @@ function updatePreview() {
     img = $<HTMLImageElement>("previewImage");
   $("showOriginal").setAttribute("aria-pressed", String(showOriginal));
   $("showResult").setAttribute("aria-pressed", String(!showOriginal));
+  if (photo?.file && viewport.getAttribute("aria-busy") === "true") return;
   const source = showOriginal ? originalUrl : photo?.result;
   img.hidden = !source;
   if (source) {
-    img.src = source;
+    if (img.getAttribute("src") !== source) img.src = source;
     img.width = (showOriginal ? photo?.width : photo?.resultWidth) || 1400;
     img.height = (showOriginal ? photo?.height : photo?.resultHeight) || 900;
   } else img.removeAttribute("src");
@@ -565,18 +639,25 @@ async function openPhoto(id: string) {
   currentId = id;
   selectedPoint = -1;
   pointer = undefined;
-  bitmap?.close();
-  bitmap = undefined;
-  if (originalUrl) URL.revokeObjectURL(originalUrl);
-  originalUrl = "";
+  drag = undefined;
+  viewport.setAttribute("aria-busy", "true");
+  $("canvasEmpty").textContent = "正在准备照片…";
+  $("canvasEmpty").hidden = false;
   const token = ++displayToken;
   previewToken++;
   clearTimeout(previewTimer);
-  select("zoom").value = "1";
-  viewport.scrollTop = 0;
-  viewport.scrollLeft = 0;
   render();
-  if (!photo.file) return;
+  if (!photo.file) {
+    bitmap?.close();
+    bitmap = undefined;
+    bitmapPhotoId = "";
+    if (originalUrl) URL.revokeObjectURL(originalUrl);
+    originalUrl = "";
+    viewport.setAttribute("aria-busy", "false");
+    draw();
+    updatePreview();
+    return;
+  }
   try {
     const result = await processImage({
       blob: await identify(photo.file),
@@ -592,16 +673,34 @@ async function openPhoto(id: string) {
       next.close();
       return;
     }
+    bitmap?.close();
+    if (originalUrl) URL.revokeObjectURL(originalUrl);
     bitmap = next;
+    bitmapPhotoId = id;
+    select("zoom").value = "1";
+    viewport.scrollTop = 0;
+    viewport.scrollLeft = 0;
+    viewport.setAttribute("aria-busy", "false");
     originalUrl = URL.createObjectURL(result.blob);
     draw();
     updatePreview();
     if (!photo.result && photo.corners.length === 4) void refreshPreview(photo);
   } catch (error) {
-    if (token === displayToken) message((error as Error).message, true);
+    if (token === displayToken) {
+      viewport.setAttribute("aria-busy", "false");
+      bitmap?.close();
+      bitmap = undefined;
+      bitmapPhotoId = "";
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
+      originalUrl = "";
+      draw();
+      updatePreview();
+      message((error as Error).message, true);
+    }
   }
 }
 function draw() {
+  if (current()?.file && viewport.getAttribute("aria-busy") === "true") return;
   const photo = current(),
     zoom = Number(select("zoom").value);
   const baseW = Math.max(240, viewport.clientWidth),
@@ -611,12 +710,15 @@ function draw() {
     scale = window.devicePixelRatio || 1;
   canvas.style.width = `${cssW}px`;
   canvas.style.height = `${cssH}px`;
-  canvas.width = Math.round(cssW * scale);
-  canvas.height = Math.round(cssH * scale);
-  ctx.scale(scale, scale);
+  const pixelW = Math.round(cssW * scale),
+    pixelH = Math.round(cssH * scale);
+  if (canvas.width !== pixelW) canvas.width = pixelW;
+  if (canvas.height !== pixelH) canvas.height = pixelH;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.fillStyle = "#f2f2f2";
   ctx.fillRect(0, 0, cssW, cssH);
   $("canvasEmpty").hidden = !!bitmap;
+  if (!bitmap) $("canvasEmpty").textContent = "选择照片后显示原图。";
   if (!bitmap || !photo) return;
   const ratio = Math.min(
     (cssW - 48) / bitmap.width,
@@ -658,8 +760,12 @@ function draw() {
   }
   if (pointer && drag?.point !== -1) {
     const size = 120,
-      lx = Math.min(cssW - size - 8, viewport.scrollLeft + baseW - size - 16),
-      ly = viewport.scrollTop + 16;
+      lx =
+        viewport.scrollLeft +
+        (pointer.x - viewport.scrollLeft > baseW / 2 ? 16 : baseW - size - 16),
+      ly =
+        viewport.scrollTop +
+        (pointer.y - viewport.scrollTop > baseH / 2 ? 16 : baseH - size - 16);
     const sx = ((pointer.x - x) / w) * bitmap.width,
       sy = ((pointer.y - y) / h) * bitmap.height,
       sample = 52;
@@ -704,7 +810,14 @@ const normalized = (p: Point) => ({
 });
 canvas.onpointerdown = (event) => {
   const photo = current();
-  if (!photo?.file || !bitmap || busy) return;
+  if (
+    !photo?.file ||
+    !bitmap ||
+    bitmapPhotoId !== currentId ||
+    viewport.getAttribute("aria-busy") === "true" ||
+    busy
+  )
+    return;
   canvas.focus();
   const p = mousePoint(event);
   pointer = p;
@@ -754,7 +867,7 @@ canvas.onpointerdown = (event) => {
   draw();
 };
 canvas.onpointermove = (event) => {
-  if (!bitmap || busy) return;
+  if (!bitmap || bitmapPhotoId !== currentId || busy) return;
   pointer = mousePoint(event);
   if (drag?.point === -1) {
     viewport.scrollLeft = drag.scrollX + drag.x - event.clientX;
@@ -845,6 +958,39 @@ async function confirm() {
       throw Error("校正未完成，请检查四角后重试。");
     photo.processed = true;
     photo.automated = false;
+    photo.learnedSuggestion = undefined;
+    if (
+      !photo.detection &&
+      histories.has(photo.id) &&
+      learningEnabled() &&
+      bitmap &&
+      bitmapPhotoId === photo.id &&
+      viewport.getAttribute("aria-busy") !== "true"
+    ) {
+      try {
+        const sample = new OffscreenCanvas(
+          192,
+          Math.max(16, Math.round((192 * bitmap.height) / bitmap.width)),
+        );
+        const context = sample.getContext("2d")!;
+        context.drawImage(bitmap, 0, 0, sample.width, sample.height);
+        const feature = sceneFeature(
+          context.getImageData(0, 0, sample.width, sample.height).data,
+          sample.width,
+          sample.height,
+        );
+        saveCorrections(
+          rememberCorrection(loadCorrections(), {
+            feature,
+            corners: copy(photo.corners),
+            time: Date.now(),
+          }),
+        );
+        renderLearning();
+      } catch {
+        message("当前页已确认，但本地纠正经验未能保存。", true);
+      }
+    }
     save();
     message("当前页已确认。原始照片保留。");
     const index = photos.indexOf(photo),
@@ -890,6 +1036,7 @@ async function importFiles(files: File[]) {
   previewToken++;
   clearTimeout(previewTimer);
   const initialProject = photos.length === 0;
+  lastImportError = "";
   const failures: string[] = [];
   let added = 0,
     restored = 0;
@@ -948,6 +1095,7 @@ async function importFiles(files: File[]) {
       photo.file = file;
       if (automatic && plain.detection) {
         photo.detection = plain.detection.status;
+        photo.learnedSuggestion = plain.detection.source === "local-correction";
         photo.corners = copy(plain.detection.corners);
       }
       if (photo.thumb) URL.revokeObjectURL(photo.thumb);
@@ -961,10 +1109,12 @@ async function importFiles(files: File[]) {
         added++;
       }
     } catch (error) {
-      failures.push(`${file.name}：${(error as Error).message}`);
+      lastImportError = (error as Error).message;
+      failures.push(`${file.name}：${lastImportError}`);
     }
   }
   if (initialProject) sortPhotos();
+  updateSuggestedName();
   save();
   setBusy(false);
   const missing = photos.filter((p) => !p.file).length;
@@ -976,6 +1126,14 @@ async function importFiles(files: File[]) {
     !!failures.length,
   );
   if (added || restored) showStage("review", false);
+  // Incoming phone photos must not reload the page currently being edited.
+  if (added && !restored && bitmap && bitmapPhotoId === currentId) {
+    render();
+    const photo = current();
+    if (photo && !photo.result && photo.corners.length === 4)
+      await refreshPreview(photo);
+    return;
+  }
   await openPhoto(
     currentId && photos.some((p) => p.id === currentId)
       ? currentId
@@ -990,12 +1148,12 @@ input("files").onchange = () => {
   void importFiles(files);
 };
 $("dropzone").onclick = () => {
-  if (!busy) input("files").click();
+  if (!busy) $("phoneOpen").click();
 };
 $("dropzone").onkeydown = (event) => {
   if ((event.key === "Enter" || event.key === " ") && !busy) {
     event.preventDefault();
-    input("files").click();
+    $("phoneOpen").click();
   }
 };
 document.addEventListener("dragover", (event) => {
@@ -1048,6 +1206,7 @@ $("autoFind").onclick = async () => {
       history(photo);
       photo.corners = copy(result.detection.corners);
       photo.detection = "suggested";
+      photo.learnedSuggestion = result.detection.source === "local-correction";
       selectedPoint = -1;
       invalidate(photo);
       message("已找到候选四角，正在生成预览。请核对完整内容后校正并确认。");
@@ -1211,6 +1370,11 @@ $("showOriginal").onclick = () => {
   updatePreview();
 };
 input("projectName").oninput = save;
+$("suggestName").onclick = () => {
+  updateSuggestedName(true);
+  save();
+  renderSummary();
+};
 for (const id of ["aspect", "quality", "format"])
   select(id).onchange = () => {
     save();
@@ -1441,6 +1605,14 @@ const phone = phoneTransfer({
   importPhoto: async (file) => {
     if (busy) return null;
     await importFiles([file]);
-    return photos.some((photo) => photo.file === file);
+    const photo = photos.find((photo) => photo.file === file);
+    if (photo)
+      return {
+        reviewReason:
+          photo.corners.length !== 4 || photo.learnedSuggestion
+            ? "已导入，PPT 边界需在电脑上核对，可从待核对列表直接打开。"
+            : undefined,
+      };
+    throw Error(lastImportError || "电脑未能导入此照片，请重试。");
   },
 });

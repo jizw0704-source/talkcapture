@@ -10,18 +10,20 @@
     <main>
       <span class="eyebrow">报告拾光</span>
       <h1>照片传到电脑</h1>
-      <p>与电脑连接同一个 Wi-Fi，选择相册中的报告照片。手机原图不会被删除。</p>
-      <p class="muted">HTTP 传输未加密，请只在可信 Wi-Fi 下使用。</p>
-      <section>
+      <p class="intro">选好报告照片，确认传输，回到电脑整理。</p>
+      <p class="muted">同一可信 Wi-Fi · 原图保留 · 传输未加密</p>
+      <section class="connection-section">
+        <h2>01 · 连接电脑</h2>
         <button id="connect" class="primary">申请连接电脑</button>
         <p id="connection" role="status" aria-live="polite">
           扫码后请申请连接，并在电脑上允许。
         </p>
         <p id="expiry" class="muted"></p>
       </section>
-      <section>
+      <section class="transfer-section">
+        <h2>02 · 选择并传送</h2>
         <label class="picker" for="photos">
-          选择相册照片
+          <span id="pickerLabel">选择相册照片</span>
           <input
             id="photos"
             type="file"
@@ -40,7 +42,21 @@
         </div>
         <progress id="progress" max="100" value="0" hidden></progress>
         <p id="status" role="status" aria-live="polite">尚未选择照片。</p>
-        <ol id="list"></ol>
+        <h2 class="results-heading">03 · 传输结果</h2>
+        <p id="batchCounts" class="batch-counts" role="status"></p>
+        <div id="failureNotice" class="failure-notice" role="alert" hidden>
+          <h3 id="failureHeading" tabindex="-1"></h3>
+          <p id="failureDetail"></p>
+        </div>
+        <label class="list-filter"
+          >查看照片
+          <select id="filter">
+            <option value="all">全部照片</option>
+            <option value="failed">仅失败照片</option>
+            <option value="review">仅边界待核对</option>
+          </select>
+        </label>
+        <ol id="list" aria-label="本次传图列表"></ol>
       </section>
       <details>
         <summary>连接与隐私说明</summary>

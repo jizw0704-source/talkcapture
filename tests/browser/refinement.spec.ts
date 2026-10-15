@@ -29,6 +29,10 @@ test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设�
       fullPage: true,
     });
   }
+  await page.locator("#dropzone").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#phonePanel")).toBeVisible();
+  await page.locator("#phoneHide").click();
   await page.locator("#demo").click();
   await expect(page.locator(".overview")).toBeVisible();
   await expect(page.locator("#stepReview")).toHaveAttribute(
@@ -59,4 +63,50 @@ test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设�
   await expect(page.locator("#downloadResult")).toBeHidden();
   await expect(page.locator("#download")).toBeHidden();
   await expect(page.locator("#export")).toBeEnabled();
+});
+
+test("选区移动不重置画布，切图准备期间保留已绘制画面", async ({
+  page,
+}, info) => {
+  await page.goto("/");
+  await page.locator("#demo").click();
+  const viewport = page.locator("#canvasViewport");
+  await expect(viewport).toHaveAttribute("aria-busy", "false");
+  const box = await page.locator("#editorCanvas").boundingBox();
+  await page.evaluate(() => {
+    const canvas = document.getElementById("editorCanvas")!;
+    (window as any).canvasResets = 0;
+    new MutationObserver((records) => {
+      (window as any).canvasResets += records.filter(
+        (r) => r.attributeName === "width" || r.attributeName === "height",
+      ).length;
+    }).observe(canvas, { attributes: true });
+    const original = window.createImageBitmap.bind(window);
+    window.createImageBitmap = (async (
+      ...args: Parameters<typeof createImageBitmap>
+    ) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return (original as any)(...args);
+    }) as typeof createImageBitmap;
+  });
+  await page.mouse.move(box!.x + box!.width * 0.8, box!.y + box!.height * 0.2, {
+    steps: 20,
+  });
+  expect(await page.evaluate(() => (window as any).canvasResets)).toBe(0);
+  await page.screenshot({
+    path: info.outputPath("magnifier-opposite-corner.png"),
+    fullPage: true,
+  });
+  await page.mouse.move(0, 0);
+  const before = await page
+    .locator("#editorCanvas")
+    .evaluate((c: HTMLCanvasElement) => c.toDataURL());
+  await page.locator(".page-row").nth(1).locator(".page-open").click();
+  await expect(viewport).toHaveAttribute("aria-busy", "true");
+  expect(
+    await page
+      .locator("#editorCanvas")
+      .evaluate((c: HTMLCanvasElement) => c.toDataURL()),
+  ).toBe(before);
+  await expect(viewport).toHaveAttribute("aria-busy", "false");
 });

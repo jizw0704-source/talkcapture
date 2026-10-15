@@ -32,6 +32,8 @@ export async function organizeAutomatically<T>(
     );
     try {
       if (!photo.file) throw Error("缺少原图，请重新导入或排除此页。");
+      if (photo.learnedSuggestion && !photo.processed)
+        throw Error("本地经验选区需要人工核对并确认。");
       let corners = photo.corners.map((point) => ({ ...point }));
       if (photo.processed) {
         const error = validateCorners(corners);
@@ -52,6 +54,13 @@ export async function organizeAutomatically<T>(
               ? "发现多个候选画面，请选择要保留的四角。"
               : "未找到完整 PPT 边界，请手动选四角。",
           );
+        }
+        if (detection.source === "local-correction") {
+          photo.corners = detection.corners.map((p) => ({ ...p }));
+          photo.detection = detection.status;
+          photo.learnedSuggestion = true;
+          options.changed();
+          throw Error("已找到本地经验选区，请人工核对并确认。");
         }
         corners = detection.corners.map((point) => ({ ...point }));
       }

@@ -167,3 +167,19 @@ test("缺少原图和失效的已确认选区不会被放行", async () => {
   assert.deepEqual(r.detected, []);
   assert.deepEqual(r.prepared, []);
 });
+
+test("本地纠正建议必须人工确认，不能静默自动生成", async () => {
+  const p = photo("learned");
+  const r = runner();
+  r.options.detect = async () => ({
+    status: "suggested",
+    corners: fullCorners(),
+    source: "local-correction",
+  });
+  const issues = await organizeAutomatically([p], r.options);
+  assert.equal(issues.length, 1);
+  assert.equal(p.learnedSuggestion, true);
+  assert.equal(p.processed, false);
+  assert.deepEqual(r.prepared, []);
+  assert.equal((await organizeAutomatically([p], r.options)).length, 1);
+});

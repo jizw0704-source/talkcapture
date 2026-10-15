@@ -16,7 +16,9 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
 
 export function phoneTransfer(options: {
   canImport: () => boolean;
-  importPhoto: (file: File) => Promise<boolean | null>;
+  importPhoto: (
+    file: File,
+  ) => Promise<boolean | null | { reviewReason?: string }>;
 }) {
   let owner = "",
     expires = 0,
@@ -25,6 +27,8 @@ export function phoneTransfer(options: {
     closed = false,
     generation = 0;
   const completed = new Map<string, boolean>();
+  const failures = new Map<string, string>();
+  const reviews = new Map<string, string>();
   const status = (text: string, error = false) => {
     $("phoneStatus").textContent = text;
     $("phoneStatus").classList.toggle("error", error);
@@ -86,6 +90,8 @@ export function phoneTransfer(options: {
     $("phoneStart").hidden = false;
     $<HTMLSelectElement>("phoneNetwork").disabled = false;
     completed.clear();
+    failures.clear();
+    reviews.clear();
     $<HTMLInputElement>("phoneLink").value = "";
     $<HTMLImageElement>("phoneQr").removeAttribute("src");
   }
@@ -140,10 +146,18 @@ export function phoneTransfer(options: {
             lastModified: photo.modified,
           });
           if (closed || owner !== key || !options.canImport()) break;
-          const imported = await options.importPhoto(file);
+          let imported: boolean | null | { reviewReason?: string };
+          try {
+            imported = await options.importPhoto(file);
+          } catch (error) {
+            imported = false;
+            failures.set(photo.id, (error as Error).message);
+          }
           if (closed || owner !== key) break;
           if (imported === null) break;
-          completed.set(photo.id, imported);
+          if (typeof imported === "object" && imported.reviewReason)
+            reviews.set(photo.id, imported.reviewReason);
+          completed.set(photo.id, imported !== false);
         }
         if (closed || owner !== key) break;
         await api(
@@ -151,6 +165,8 @@ export function phoneTransfer(options: {
           "POST",
           {
             state: completed.get(photo.id) ? "imported" : "rejected",
+            reason: failures.get(photo.id),
+            reviewReason: reviews.get(photo.id),
           },
           key,
         );

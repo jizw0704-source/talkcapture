@@ -119,6 +119,7 @@ type Uploaded = {
   type: string;
   state: "queued" | "imported" | "rejected";
   reason?: string;
+  reviewReason?: string;
   path?: string;
 };
 type Session = {
@@ -437,8 +438,16 @@ export function createTransfer(
           if (file.path) await rm(file.path, { force: true });
           file.path = undefined;
           file.state = data.state;
+          if (
+            data.state === "imported" &&
+            typeof data.reviewReason === "string"
+          )
+            file.reviewReason = data.reviewReason.slice(0, 300);
           if (data.state === "rejected")
-            file.reason = "电脑未能导入，请查看电脑的文件格式或容量提示。";
+            file.reason =
+              typeof data.reason === "string"
+                ? data.reason.slice(0, 300)
+                : "电脑未能导入，请查看电脑的文件格式或容量提示。";
         }
         json(res, { state: file.state });
         return;

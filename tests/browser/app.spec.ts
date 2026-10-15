@@ -122,7 +122,7 @@ test("四点校正、继承、排序、PDF 和 PPTX 的真正文件导出", asyn
   page.on("request", (request) => {
     if (
       /^https?:/.test(request.url()) &&
-      !request.url().startsWith("http://127.0.0.1:9015/")
+      !request.url().startsWith("http://127.0.0.1:9025/")
     )
       external.push(request.url());
   });

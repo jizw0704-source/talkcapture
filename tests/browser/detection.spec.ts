@@ -101,7 +101,7 @@ test("默认自动定位、逐页核对与原图分辨率导出", async ({ page 
   page.on("request", (request) => {
     if (
       /^https?:/.test(request.url()) &&
-      !request.url().startsWith("http://127.0.0.1:9015/")
+      !request.url().startsWith("http://127.0.0.1:9025/")
     )
       external.push(request.url());
   });

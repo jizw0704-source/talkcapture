@@ -63,3 +63,13 @@ Clearing a project removes editing metadata without touching source files on the
 Detection uses edges and straight lines rather than understanding presentation content. Windows, whiteboards, or charts may look like slides. Low contrast, glare, occlusion, severe viewing angles, or corners outside the photo can lead to failure or incorrect selection. Missing or blurred content cannot be recovered.
 
 HEIC support has been checked with a macOS-encoded sample, but not all iPhone generations, HDR modes, multi-frame files, or color spaces. Real phone transfer, high-resolution batches, and compatibility with everyday browsers and PowerPoint still need independent acceptance testing.
+
+Phone transfer is now the primary import action; desktop selection remains available as “从电脑选择”. A busy receive queue automatically waits and retries; other import failures report their actual reason. The magnifier moves to the opposite side of the pointer. Photo changes preserve the previous canvas frame while the next image loads, and later phone arrivals do not reload the current original. Low-contrast and smaller projection boundaries have improved local detection; occluded and cropped boundaries still require manual review.
+
+## Naming, upload recovery, and local correction memory
+
+Suggested report names use meaningful shared filename prefixes, capture date (or today's date), and included page count. They do not infer the topic from image text. Manual names remain unchanged unless “重新建议报告名称” is selected.
+
+The phone page keeps failed filenames, available previews, and actual failure reasons. Once the other photos finish, an in-page reminder filters failures; retry one/all without reselecting, or replace a damaged/oversize file. Appending a selection preserves the existing list. Files remain in page memory only. Imported images with uncertain PPT boundaries are separate from failed uploads and have a desktop review shortcut. Phone boundary notices reflect import-time status.
+
+Confirmed manual corner edits can teach a local scene memory (up to 30 examples in this browser). It stores coarse layout features and normalized corners, not original images. Very similar compositions can receive a fallback proposal when normal detection fails. Such proposals require manual confirmation and pause batch automation. This is case matching, not general model training or a claim of improving accuracy across arbitrary scenes. Disable or clear it under “更多调整”; clearing a photo project does not clear the separate memory. Nothing is uploaded or synced across browsers.

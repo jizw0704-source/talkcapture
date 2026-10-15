@@ -1,5 +1,6 @@
 import { heicTo } from "heic-to/next";
 import { homography, targetSize, validateCorners } from "./geometry";
+import { sceneFeature, matchCorrection } from "./learning";
 import { detectSlide } from "./detection";
 import type { ProcessRequest, ProcessResult } from "./types";
 
@@ -54,7 +55,17 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
     bitmap.close();
     bitmap = undefined;
     if (q.kind === "detect") {
-      const detection = detectSlide(ctx.getImageData(0, 0, w, h).data, w, h);
+      const pixels = ctx.getImageData(0, 0, w, h).data;
+      const detection = detectSlide(pixels, w, h);
+      if (detection.status === "not_found" && q.examples?.length) {
+        const corners = matchCorrection(sceneFeature(pixels, w, h), q.examples);
+        if (corners)
+          Object.assign(detection, {
+            status: "suggested",
+            corners,
+            source: "local-correction",
+          });
+      }
       const scale = Math.min(1, 240 / Math.max(w, h));
       const width = Math.max(1, Math.round(w * scale));
       const height = Math.max(1, Math.round(h * scale));

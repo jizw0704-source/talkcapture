@@ -19,6 +19,7 @@ export type Photo = {
   excluded: boolean;
   warnings: string[];
   detection?: SlideDetection["status"];
+  learnedSuggestion?: boolean;
   file?: File;
   thumb?: string;
   result?: string;
@@ -41,6 +42,7 @@ export type ProcessRequest = {
   brightness: number;
   contrast: number;
   kind: "warp" | "plain" | "detect";
+  examples?: import("./learning").Correction[];
 };
 export type ProcessResult = {
   id: number;

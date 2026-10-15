@@ -63,12 +63,11 @@ pnpm format:check
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm start
-# In another terminal, reuse the running build service:
 pnpm test:browser
+pnpm start
 ```
 
-Use `pnpm dev` while editing source files. `pnpm preview` runs the same service as `pnpm start`. All three use port 9015 and cannot run simultaneously. Browser tests require Playwright Chromium and start the development service if no existing service is available. Standalone ESLint is not configured.
+Use `pnpm dev` while editing source files. `pnpm preview` runs the same service as `pnpm start`. All three use port 9015 and cannot run simultaneously. Browser tests require Playwright Chromium and start an isolated built service on ports 9025/9026 without reusing the user’s transfer session. Standalone ESLint is not configured.
 
 ## Local data and privacy
 

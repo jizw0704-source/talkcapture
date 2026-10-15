@@ -134,3 +134,23 @@ test("小图与无效维度安全回退或明确拒绝", () => {
   );
   assert.throws(() => detectSlide(new Uint8ClampedArray(4), NaN, 1), /分析图/);
 });
+
+test("低对比度投影保留完整边界，不因固定梯度阈值漏检", () => {
+  const result = run([screen], 110, 120, true);
+  assert.equal(result.status, "suggested");
+  result.corners.forEach((p, i) =>
+    assert.ok(Math.hypot(p.x - screen[i].x, p.y - screen[i].y) < 0.03),
+  );
+});
+
+test("投影只占照片约十分之一时仍可定位完整边界", () => {
+  const small = screen.map((p) => ({
+    x: 0.5 + (p.x - 0.5) * 0.46,
+    y: 0.5 + (p.y - 0.5) * 0.7,
+  }));
+  const result = run([small]);
+  assert.equal(result.status, "suggested");
+  result.corners.forEach((p, i) =>
+    assert.ok(Math.hypot(p.x - small[i].x, p.y - small[i].y) < 0.03),
+  );
+});

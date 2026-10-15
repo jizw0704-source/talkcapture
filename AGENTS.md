@@ -11,6 +11,6 @@
 - 只清理本工程确切 `dist/`，不得清理项目、照片或其他工程。构建生成物和测试文件不提交。
 - 不提交、推送、部署或改动 Pulse，除非用户明确授权。
 
-命令：`pnpm install --frozen-lockfile` 安装；`pnpm dev` 开发；`pnpm format` 格式化；`pnpm format:check` 格式；`pnpm typecheck` 类型；`pnpm test` 单元；`pnpm test:browser` 浏览器；`pnpm build` 构建；`pnpm start` 启动构建；`pnpm preview` 同 start 验证构建。电脑入口为 127.0.0.1:9015；手机网关仅按用户操作在所选私有地址的 9016 端口开启。开发和正式启动使用同一端口，不能同时运行。独立 ESLint 尚未配置。
+命令：`pnpm install --frozen-lockfile` 安装；`pnpm dev` 开发；`pnpm format` 格式化；`pnpm format:check` 格式；`pnpm typecheck` 类型；`pnpm test` 单元；`pnpm test:browser` 浏览器（先 build，独立 9025/9026 端口，避免干扰用户传图）；`pnpm build` 构建；`pnpm start` 启动构建；`pnpm preview` 同 start 验证构建。电脑入口为 127.0.0.1:9015；手机网关仅按用户操作在所选私有地址的 9016 端口开启。开发和正式启动使用同一端口，不能同时运行。独立 ESLint 尚未配置。
 
 交付前运行以上检查，实际验证桌面及窄屏，并区分开发自测、用户独立验收和公开发布。

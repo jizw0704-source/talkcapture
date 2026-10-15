@@ -1,3 +1,4 @@
+import { loadCorrections } from "./learning";
 import type { ProcessRequest, ProcessResult } from "./types";
 
 let worker: Worker | undefined;
@@ -67,6 +68,10 @@ function runImage(request: Omit<ProcessRequest, "id">) {
       stopProcessing("照片处理超时，请缩小照片后重试。");
     }, 120_000);
     pending.set(id, { resolve, reject, timer });
-    worker!.postMessage({ ...request, id });
+    worker!.postMessage({
+      ...request,
+      ...(request.kind === "detect" ? { examples: loadCorrections() } : {}),
+      id,
+    });
   });
 }

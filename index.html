@@ -143,7 +143,7 @@
               class="dropzone"
               tabindex="0"
               role="button"
-              aria-label="选择或拖入照片"
+              aria-label="打开手机传图，也可拖入电脑照片"
             >
               <svg
                 class="upload-icon"
@@ -161,13 +161,14 @@
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <path d="m4 17 5-5 4 4 4-6 3 5" />
               </svg>
-              <strong>拖入照片，或点击选择</strong
-              ><span>JPEG、PNG、HEIC / HEIF</span
+              <strong>手机扫码上传照片</strong
+              ><span>连接同一 Wi-Fi，在电脑确认连接</span
               ><small>最多 100 张 · 单张 30 MB</small>
             </section>
             <div class="import-actions">
-              <button id="add" class="primary">选择照片</button
-              ><button id="phoneOpen" data-phone-control>手机传图</button
+              <button id="phoneOpen" class="primary" data-phone-control>
+                手机传图</button
+              ><button id="add">从电脑选择</button
               ><button id="continueReview" hidden>继续核对</button>
             </div>
             <input
@@ -205,6 +206,10 @@
           <h2 id="reviewTitle" tabindex="-1">核对画面</h2>
           <span class="muted">确认每页保留的内容</span>
         </div>
+        <details id="importReview" class="settings" hidden>
+          <summary id="importReviewSummary">边界待核对</summary>
+          <div id="importReviewList" class="issue-list"></div>
+        </details>
         <div class="workspace">
           <aside class="pages" aria-label="照片页序">
             <div class="section-heading">
@@ -363,6 +368,17 @@
                   确认后下一张</label
                 >
               </div>
+              <div class="learning-controls">
+                <label
+                  ><input
+                    id="learnCorrections"
+                    type="checkbox"
+                    checked
+                  />记住人工纠正，仅存本机</label
+                >
+                <button id="clearLearning">清除纠正经验</button>
+                <p id="learningStatus" class="hint" role="status"></p>
+              </div>
               <p class="hint">
                 方向键切换页 · Enter 确认 · 选中控制点后方向键微调，Shift
                 加大步长 · 放大后拖动画布
@@ -394,6 +410,8 @@
           <p id="downloadInfo" class="muted"></p>
           <a id="download" class="download" hidden>下载文件</a>
         </div>
+        <p class="hint">名称建议依据拍摄日期、文件名与页数生成；可直接修改。</p>
+        <button id="suggestName">重新建议报告名称</button>
         <div class="export-fields">
           <label class="report-name"
             >报告名称

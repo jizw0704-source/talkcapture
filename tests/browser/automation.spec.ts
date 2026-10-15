@@ -57,7 +57,7 @@ test("一键生成保留人工选区、设置和页序，排除页不输出，�
   page.on("request", (request) => {
     if (
       /^https?:/.test(request.url()) &&
-      !request.url().startsWith("http://127.0.0.1:9015/")
+      !request.url().startsWith("http://127.0.0.1:9025/")
     )
       external.push(request.url());
   });

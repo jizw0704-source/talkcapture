@@ -5,7 +5,16 @@ import { resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createTransfer, headers } from "./transfer.ts";
 
-const transfer = createTransfer(),
+const desktopPort = Number(process.env.REPORT_DESKTOP_PORT || 9015);
+const phonePort = Number(process.env.REPORT_PHONE_PORT || 9016);
+if (
+  ![desktopPort, phonePort].every(
+    (p) => Number.isInteger(p) && p >= 1024 && p <= 65535,
+  ) ||
+  desktopPort === phonePort
+)
+  throw Error("服务端口无效。");
+const transfer = createTransfer({ desktopPort, phonePort }),
   root = fileURLToPath(new URL("../dist/", import.meta.url));
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -16,7 +25,7 @@ const types: Record<string, string> = {
 };
 const server = createServer(async (req, res) => {
   headers(res);
-  if (req.headers.host !== "127.0.0.1:9015") {
+  if (req.headers.host !== `127.0.0.1:${desktopPort}`) {
     res.writeHead(403);
     res.end("Only the local desktop page is allowed.");
     return;
@@ -28,7 +37,7 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method !== "GET" && req.method !== "HEAD") throw Error();
     const path = decodeURIComponent(
-      new URL(req.url || "/", "http://127.0.0.1:9015").pathname,
+      new URL(req.url || "/", `http://127.0.0.1:${desktopPort}`).pathname,
     );
     const file = resolve(root, path === "/" ? "index.html" : `.${path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) throw Error();
@@ -55,9 +64,9 @@ server.on("error", (error) => {
   );
   process.exitCode = 1;
 });
-server.listen(9015, "127.0.0.1", () =>
+server.listen(desktopPort, "127.0.0.1", () =>
   console.log(
-    "报告拾光 · TalkCapture：http://127.0.0.1:9015/\n手机接收只在点击“生成二维码”后开启。",
+    `报告拾光 · TalkCapture：http://127.0.0.1:${desktopPort}/\n手机接收只在点击“生成二维码”后开启。`,
   ),
 );
 let stopping = false;
