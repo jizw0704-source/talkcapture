@@ -32,6 +32,10 @@ export async function organizeAutomatically<T>(
     );
     try {
       if (!photo.file) throw Error("缺少原图，请重新导入或排除此页。");
+      if (photo.sourceNeedsReview && !photo.processed)
+        throw Error(
+          "补传原图的内容未能与旧文件核验，请人工核对并确认已有选区。",
+        );
       if (photo.learnedSuggestion && !photo.processed)
         throw Error("本地经验选区需要人工核对并确认。");
       let corners = photo.corners.map((point) => ({ ...point }));

@@ -1053,3 +1053,12 @@ dialog::backdrop {
   flex-basis: 100%;
   margin: 0;
 }
+
+.replacement-source {
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.replacement-source p {
+  overflow-wrap: anywhere;
+}

@@ -12,7 +12,7 @@ The desktop workflow has three steps: import photos, review images, and export t
 4. Drag pages to change their order, or expand “页序与批量操作” (Page order and batch actions) to move, exclude, or restore pages. Excluding a page removes it from output without deleting the original.
 5. Choose “去导出” (Go to export), select PPTX or PDF, choose 16:9 or 4:3, then generate and download. Unconfirmed pages normally block manual export unless you explicitly choose to include them as original images.
 
-Switching steps does not discard original images, replace corners, or rerun detection. Advanced settings are collapsed until needed. After restoring metadata without the originals, the application returns to the import step.
+Switching steps does not discard original images, replace corners, or rerun detection. Advanced settings are collapsed until needed. If an original is missing, select its page to supply the source again while keeping its edits.
 
 “自动找出 PPT” (Automatically find PPT) retries the current page. Successful detection replaces its corners and requires confirmation again; “撤销四角操作” (Undo corner operation) restores the preceding selection. Failed or canceled detection preserves existing corners and confirmation status. Reimporting matching originals does not rerun detection or overwrite saved manual parameters.
 
@@ -47,9 +47,9 @@ If the phone cannot connect, check the selected Wi-Fi address and ensure the net
 
 ## Project recovery
 
-Editing metadata is stored in the browser's local database: page order, corners, adjustments, and states are saved, but source image contents are not. Refreshing or restarting therefore requires reselecting the original photos. Matching uses filename, file size, and modification time; saved edits are retained.
+Original files and editing metadata are stored separately in this browser's local database. After the saved count reaches N/N, refreshing restores originals, order, corners, adjustments and states. Legacy entries or cleared caches need resupplying: SHA-256 content matching handles changed filenames and timestamps. Ambiguous legacy matches require an explicit page target. Use “从电脑补传当前页” or “手机补传当前页” to preserve the page and corners; unverifiable content requires a new confirmation. Failed cache writes show a reason and a retry action.
 
-Clearing a project removes editing metadata without touching source files on the computer. Changing browsers, clearing site data, or changing the service address can make existing metadata unavailable. Backing up the source repository does not back up browser editing projects or photos.
+Clearing a project removes this tool's cached copies and editing metadata without touching source files on the computer or phone. Browser caches may be cleared or evicted and are not a substitute for keeping original-file backups. Changing browsers, clearing site data, or changing the service address can make existing metadata unavailable. Backing up the source repository does not back up browser editing projects or photos.
 
 ## Image quality and limits
 

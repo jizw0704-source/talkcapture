@@ -49,3 +49,25 @@ export async function revealControl(page: Page, id: string) {
   if (detail && !(await page.locator(`#${detail}[open]`).count()))
     await page.locator(`#${detail} > summary`).click();
 }
+
+export async function dropOriginalCache(page: Page) {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("report-photo-organizer");
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction("originals", "readwrite");
+        tx.objectStore("originals").clear();
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      };
+      request.onerror = () => reject(request.error);
+    });
+  });
+}

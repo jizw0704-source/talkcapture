@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { revealControl } from "./ui";
 
 async function demo(page: Page) {
+  await revealControl(page, "demo");
   await page.locator("#demo").click();
   await expect(page.locator("#add")).toBeEnabled();
   await expect(page.locator(".page-row")).toHaveCount(3);
@@ -48,7 +49,7 @@ async function uncertain(page: Page) {
   await expect(page.locator("#autoOrganize")).toBeEnabled();
 }
 
-test("一键生成保留人工选区、设置和页序，排除页不输出，恢复后原图仍必需", async ({
+test("一键生成保留人工选区、设置和页序，排除页不输出，刷新后恢复原图", async ({
   page,
 }, info) => {
   const errors: string[] = [],
@@ -133,7 +134,10 @@ test("一键生成保留人工选区、设置和页序，排除页不输出，�
   await expect(page.locator("#brightness")).toHaveValue("8");
   await page.waitForTimeout(400);
   await page.reload();
-  await expect(page.locator("#autoOrganize")).toBeDisabled();
+  await expect(page.locator("#cacheStatus")).toContainText(
+    "已保存 3 / 3 张原图",
+  );
+  await expect(page.locator("#autoOrganize")).toBeEnabled();
   await expect(page.locator("#download")).toBeHidden();
   await demo(page);
   await expect(page.locator("#status")).toContainText("三张合成示例");
@@ -209,11 +213,13 @@ test("自动整理可取消和重试，关闭导入定位也可主动启动，�
   await expect(page.locator("#download")).toBeVisible();
   await page.waitForTimeout(400);
   await page.reload();
-  await expect(page.locator("#autoOrganize")).toBeDisabled();
+  await expect(page.locator("#cacheStatus")).toContainText(
+    "已保存 3 / 3 张原图",
+  );
+  await expect(page.locator("#autoOrganize")).toBeEnabled();
   await page.locator("#stepExport").click();
   await page.locator("#export").click();
-  await expect(page.locator("#status")).toContainText("缺少原图");
-  await expect(page.locator("#download")).toBeHidden();
+  await expect(page.locator("#download")).toBeVisible();
 });
 
 test("自动生成文件阶段也能取消，保留自动校正页面后重试", async ({ page }) => {

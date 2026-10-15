@@ -20,6 +20,8 @@ export type Photo = {
   warnings: string[];
   detection?: SlideDetection["status"];
   learnedSuggestion?: boolean;
+  digest?: string;
+  sourceNeedsReview?: boolean;
   file?: File;
   thumb?: string;
   result?: string;

@@ -19,7 +19,8 @@ import type { Point } from "./geometry";
 import { identify, capturedTime } from "./files";
 import { processImage, stopProcessing } from "./processor";
 import { exportReport } from "./export";
-import { readProject, writeProject } from "./storage";
+import { readProject, writeProject, cacheOriginal } from "./storage";
+import { fileDigest, recoveryTargets } from "./recovery";
 import type { Photo } from "./types";
 import { phoneTransfer } from "./phone";
 import { organizeAutomatically, type AutomaticIssue } from "./automation";
@@ -142,7 +143,16 @@ function showStage(next: Stage, focus = true) {
   stage = next;
   if (next === "export") updateSuggestedName();
   renderStage();
-  draw();
+  if (
+    next === "review" &&
+    focus &&
+    current()?.file &&
+    (!bitmap ||
+      bitmapPhotoId !== currentId ||
+      viewport.getAttribute("aria-busy") === "true")
+  )
+    void openPhoto(currentId);
+  else draw();
   if (focus) $(`${next}Title`).focus();
 }
 for (const name of ["import", "review", "export"] as const)
@@ -159,23 +169,96 @@ function revokeDownload() {
   $("download").hidden = true;
   $("downloadResult").hidden = true;
 }
+const cachedIds = new Set<string>();
+const cacheFailures = new Map<string, string>();
+let metadataError = "",
+  savingCount = 0,
+  saveTimerPending = false;
+let replacementTargetId = "",
+  desktopReplacementId = "";
+function renderCacheStatus() {
+  const available = photos.filter((p) => p.file),
+    uncached = available.filter((p) => !cachedIds.has(p.id));
+  const missing = photos.length - available.length;
+  $("cacheStatus").hidden = !photos.length;
+  $("retryCache").hidden =
+    !photos.length || (!uncached.length && !metadataError);
+  $<HTMLButtonElement>("retryCache").disabled =
+    busy || savingCount > 0 || saveTimerPending;
+  $("cacheStatus").textContent =
+    savingCount || saveTimerPending
+      ? "正在保存本地缓存，请稍候…"
+      : metadataError
+        ? `编辑参数未保存：${metadataError}。当前照片仍可导出，请勿刷新，或重试保存。`
+        : uncached.length
+          ? `${uncached.length} 张原图未能缓存：${cacheFailures.get(uncached[0].id) || "尚未保存"}。刷新后需补传，可重试保存。`
+          : missing
+            ? `已缓存 ${available.length} 张原图；另有 ${missing} 页旧记录需补传，补齐后可刷新恢复。`
+            : `已保存 ${photos.length} / ${photos.length} 张原图到本地，刷新后可自动恢复。`;
+}
+async function persistProject() {
+  const snapshot = {
+    version: 1 as const,
+    name: input("projectName").value,
+    aspect: select("aspect").value,
+    quality: select("quality").value,
+    photos: photos.map(
+      ({ file: _file, thumb: _thumb, result: _result, ...photo }) =>
+        structuredClone(photo),
+    ),
+  };
+  savingCount++;
+  renderCacheStatus();
+  try {
+    await writeProject(snapshot);
+    metadataError = "";
+  } catch (error) {
+    metadataError = (error as Error).message || "浏览器无法写入";
+  } finally {
+    savingCount--;
+    renderCacheStatus();
+  }
+}
+async function retainOriginal(photo: Photo) {
+  if (!photo.file || !photo.digest) return;
+  try {
+    await cacheOriginal(photo.id, photo.file, photo.digest);
+    cachedIds.add(photo.id);
+    cacheFailures.delete(photo.id);
+  } catch (error) {
+    cachedIds.delete(photo.id);
+    cacheFailures.set(
+      photo.id,
+      (error as Error).name === "QuotaExceededError"
+        ? "浏览器可用空间不足"
+        : (error as Error).message || "本地存储不可用",
+    );
+  }
+  renderCacheStatus();
+}
 function save() {
   clearTimeout(saveTimer);
   revokeDownload();
+  saveTimerPending = true;
+  renderCacheStatus();
   saveTimer = setTimeout(() => {
-    void writeProject({
-      version: 1,
-      name: input("projectName").value,
-      aspect: select("aspect").value,
-      quality: select("quality").value,
-      photos: photos.map(
-        ({ file: _file, thumb: _thumb, result: _result, ...photo }) => photo,
-      ),
-    }).catch(() =>
-      message("本地编辑参数暂时无法保存；当前照片仍可处理和导出。", true),
-    );
+    saveTimerPending = false;
+    void persistProject();
   }, 250);
 }
+$("retryCache").onclick = async () => {
+  if (busy) return;
+  setBusy(true);
+  try {
+    for (const photo of photos.filter((p) => p.file && !cachedIds.has(p.id))) {
+      await retainOriginal(photo);
+    }
+    await persistProject();
+  } finally {
+    setBusy(false);
+    renderCacheStatus();
+  }
+};
 function history(photo: Photo) {
   photo.detection = undefined;
   photo.learnedSuggestion = undefined;
@@ -368,12 +451,13 @@ $("cancelAutomatic").onclick = () => {
 };
 
 function renderSummary() {
+  renderCacheStatus();
   const needsReview = photos.filter(
     (p) =>
       p.file &&
       !p.excluded &&
       !p.processed &&
-      (p.corners.length !== 4 || p.learnedSuggestion),
+      (p.corners.length !== 4 || p.learnedSuggestion || p.sourceNeedsReview),
   );
   $("importReview").hidden = !needsReview.length;
   $("importReviewSummary").textContent =
@@ -381,7 +465,7 @@ function renderSummary() {
   $("importReviewList").replaceChildren();
   for (const photo of needsReview) {
     const control = document.createElement("button");
-    control.textContent = `${photo.name} · ${photo.learnedSuggestion ? "经验选区需确认" : "需手动选四角"}`;
+    control.textContent = `${photo.name} · ${photo.sourceNeedsReview ? "补传原图需核对" : photo.learnedSuggestion ? "经验选区需确认" : "需手动选四角"}`;
     control.onclick = () => {
       showStage("review", false);
       void openPhoto(photo.id);
@@ -493,13 +577,15 @@ function renderPages() {
         ? "已排除 · 原图保留"
         : photo.processed
           ? "已确认"
-          : photo.learnedSuggestion
-            ? "经验选区 · 待核对"
-            : photo.detection === "suggested"
-              ? "自动定位 · 待确认"
-              : photo.detection
-                ? "需手动选四角"
-                : "待校正 / 待确认";
+          : photo.sourceNeedsReview
+            ? "补传原图 · 请核对选区"
+            : photo.learnedSuggestion
+              ? "经验选区 · 待核对"
+              : photo.detection === "suggested"
+                ? "自动定位 · 待确认"
+                : photo.detection
+                  ? "需手动选四角"
+                  : "待校正 / 待确认";
     if (photo.file && !photo.excluded && photo.processed && photo.automated)
       status.textContent = "自动校正 · 建议检查";
     text.append(title, status);
@@ -567,18 +653,32 @@ function render() {
   const error = photo ? validateCorners(photo.corners) : null;
   $("cornerPrompt").textContent = !photo
     ? "导入后自动尝试定位画面；也可按顺序点选四角。"
-    : photo.corners.length < 4
-      ? `${photo.detection === "ambiguous" ? "发现多个候选画面，请手动选择。" : photo.detection === "not_found" ? "未找到可靠的完整 PPT 边界，请手动选择。" : ""}请点选第 ${photo.corners.length + 1} 个角：${names[photo.corners.length]}。`
-      : error ||
-        (photo.processed
-          ? photo.automated
-            ? "当前页已自动校正，建议检查完整内容。可微调后人工确认。"
-            : "当前页已确认。拖动控制点后需重新确认。"
-          : photo.learnedSuggestion
-            ? "本地纠正经验给出的参考选区，请核对四角后人工确认。"
-            : photo.detection === "suggested"
-              ? "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。"
-              : "四角已就绪，可拖动微调，然后校正并确认。");
+    : !photo.file
+      ? "当前页原图尚未恢复，请补传；已有选区和页序保留。"
+      : photo.corners.length < 4
+        ? `${photo.detection === "ambiguous" ? "发现多个候选画面，请手动选择。" : photo.detection === "not_found" ? "未找到可靠的完整 PPT 边界，请手动选择。" : ""}请点选第 ${photo.corners.length + 1} 个角：${names[photo.corners.length]}。`
+        : error ||
+          (photo.processed
+            ? photo.automated
+              ? "当前页已自动校正，建议检查完整内容。可微调后人工确认。"
+              : "当前页已确认。拖动控制点后需重新确认。"
+            : photo.sourceNeedsReview
+              ? "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。"
+              : photo.learnedSuggestion
+                ? "本地纠正经验给出的参考选区，请核对四角后人工确认。"
+                : photo.detection === "suggested"
+                  ? "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。"
+                  : "四角已就绪，可拖动微调，然后校正并确认。");
+  $("replaceSource").hidden = !!photo?.file || !photo;
+  $("cancelReplacement").hidden = !replacementTargetId;
+  $("cancelPhoneReplacement").hidden = !replacementTargetId;
+  $("phoneReplacementNotice").hidden = !replacementTargetId;
+  $("phoneReplacementNotice").textContent = replacementTargetId
+    ? `正在为“${photos.find((p) => p.id === replacementTargetId)?.name || "当前页"}”补传：下一张手机照片将关联到此页，请只选择对应原图。`
+    : "";
+  $("replacementHint").textContent = replacementTargetId
+    ? `下一张手机传图将补到“${photos.find((p) => p.id === replacementTargetId)?.name || "当前页"}”，不会新增页面；请只传对应原图。`
+    : "当前页缺原图。补传会保留已有选区和页序。";
   syncPoint();
   draw();
   updatePreview();
@@ -677,6 +777,10 @@ async function openPhoto(id: string) {
     if (originalUrl) URL.revokeObjectURL(originalUrl);
     bitmap = next;
     bitmapPhotoId = id;
+    if (!photo.thumb) {
+      photo.thumb = URL.createObjectURL(result.blob);
+      renderPages();
+    }
     select("zoom").value = "1";
     viewport.scrollTop = 0;
     viewport.scrollLeft = 0;
@@ -959,6 +1063,7 @@ async function confirm() {
     photo.processed = true;
     photo.automated = false;
     photo.learnedSuggestion = undefined;
+    photo.sourceNeedsReview = undefined;
     if (
       !photo.detection &&
       histories.has(photo.id) &&
@@ -1029,7 +1134,7 @@ function sortPhotos() {
           a.selection - b.selection,
   );
 }
-async function importFiles(files: File[]) {
+async function importFiles(files: File[], targetId?: string) {
   if (busy || !files.length) return;
   setBusy(true);
   displayToken++;
@@ -1040,7 +1145,6 @@ async function importFiles(files: File[]) {
   const failures: string[] = [];
   let added = 0,
     restored = 0;
-  const alreadyMatched = new Set<string>();
   let usedBytes = photos.reduce((sum, p) => sum + p.size, 0),
     nextSelection = Math.max(-1, ...photos.map((p) => p.selection)) + 1;
   for (let i = 0; i < files.length; i++) {
@@ -1052,17 +1156,30 @@ async function importFiles(files: File[]) {
     );
     try {
       if (file.size > 30 * 1024 * 1024) throw Error("超过单张 30 MB 限制");
-      const recover = photos.find(
-        (p) =>
-          !p.file &&
-          !alreadyMatched.has(p.id) &&
-          p.name === file.name &&
-          p.size === file.size &&
-          p.modified === file.lastModified,
+      const digest = await fileDigest(file);
+      const { targets, needsReview } = recoveryTargets(
+        photos,
+        file,
+        digest,
+        targetId,
       );
+      const recover = targets[0];
+      if (!recover && !targetId) {
+        const existing = photos.find(
+          (p) => p.file && p.digest === digest && p.name === file.name,
+        );
+        if (existing) {
+          existing.file = file;
+          continue;
+        }
+      }
+      const updatedBytes = recover
+        ? usedBytes -
+          targets.reduce((sum, p) => sum + p.size, 0) +
+          targets.length * file.size
+        : usedBytes + file.size;
+      if (updatedBytes > 1024 * 1024 * 1024) throw Error("项目总大小超过 1 GB");
       if (!recover && photos.length >= 100) throw Error("项目最多 100 张照片");
-      if (!recover && usedBytes + file.size > 1024 * 1024 * 1024)
-        throw Error("项目总大小超过 1 GB");
       const automatic = !recover && input("autoDetect").checked;
       const blob = await identify(file),
         plain = await processImage({
@@ -1093,6 +1210,21 @@ async function importFiles(files: File[]) {
         warnings: [],
       };
       photo.file = file;
+      photo.digest = digest;
+      if (recover) {
+        photo.format = blob.type.replace("image/", "").toUpperCase();
+        photo.size = file.size;
+        photo.modified = file.lastModified;
+        photo.width = plain.sourceWidth || photo.width;
+        photo.height = plain.sourceHeight || photo.height;
+        if (needsReview) {
+          photo.processed = false;
+          photo.automated = undefined;
+          photo.sourceNeedsReview = true;
+        }
+        if (photo.result) URL.revokeObjectURL(photo.result);
+        photo.result = undefined;
+      }
       if (automatic && plain.detection) {
         photo.detection = plain.detection.status;
         photo.learnedSuggestion = plain.detection.source === "local-correction";
@@ -1101,13 +1233,25 @@ async function importFiles(files: File[]) {
       if (photo.thumb) URL.revokeObjectURL(photo.thumb);
       photo.thumb = URL.createObjectURL(plain.blob);
       if (recover) {
-        alreadyMatched.add(photo.id);
         restored++;
       } else {
         photos.push(photo);
-        usedBytes += file.size;
         added++;
       }
+      usedBytes = updatedBytes;
+      await retainOriginal(photo);
+      for (const other of targets.slice(1)) {
+        other.file = file;
+        other.size = file.size;
+        other.digest = digest;
+        other.modified = file.lastModified;
+        if (other.thumb) URL.revokeObjectURL(other.thumb);
+        other.thumb = URL.createObjectURL(plain.blob);
+        await retainOriginal(other);
+        restored++;
+      }
+      await persistProject();
+      if (targetId) replacementTargetId = "";
     } catch (error) {
       lastImportError = (error as Error).message;
       failures.push(`${file.name}：${lastImportError}`);
@@ -1141,6 +1285,34 @@ async function importFiles(files: File[]) {
   );
 }
 
+$("replaceCurrent").onclick = () => {
+  const photo = current();
+  if (!photo || photo.file || busy) return;
+  desktopReplacementId = photo.id;
+  input("replacementFile").click();
+};
+input("replacementFile").onchange = () => {
+  const file = input("replacementFile").files?.[0],
+    target = desktopReplacementId;
+  desktopReplacementId = "";
+  input("replacementFile").value = "";
+  if (file && target) void importFiles([file], target);
+};
+$("replaceFromPhone").onclick = () => {
+  const photo = current();
+  if (!photo || photo.file || busy) return;
+  replacementTargetId = photo.id;
+  render();
+  $("phoneOpen").click();
+};
+$("cancelReplacement").onclick = () => {
+  replacementTargetId = "";
+  render();
+};
+$("cancelPhoneReplacement").onclick = () => {
+  replacementTargetId = "";
+  render();
+};
 $("add").onclick = () => input("files").click();
 input("files").onchange = () => {
   const files = Array.from(input("files").files || []);
@@ -1457,8 +1629,9 @@ $<HTMLDialogElement>("clearDialog").onclose = () => {
     void clearProject();
 };
 async function clearProject() {
-  await phone.stop();
   clearTimeout(saveTimer);
+  saveTimerPending = false;
+  await phone.stop();
   clearTimeout(previewTimer);
   stopProcessing();
   displayToken++;
@@ -1476,6 +1649,10 @@ async function clearProject() {
   selectedPoint = -1;
   checked.clear();
   histories.clear();
+  cachedIds.clear();
+  cacheFailures.clear();
+  metadataError = "";
+  replacementTargetId = "";
   revokeDownload();
   $("recovery").hidden = true;
   if (originalUrl) URL.revokeObjectURL(originalUrl);
@@ -1575,6 +1752,7 @@ async function init() {
     );
     return;
   }
+  setBusy(true);
   try {
     const saved = await readProject();
     if (
@@ -1587,15 +1765,28 @@ async function init() {
       select("aspect").value = saved.aspect;
       select("quality").value = saved.quality;
       currentId = photos[0].id;
-      $("recovery").hidden = false;
+      for (const photo of photos) {
+        if (photo.file) {
+          cachedIds.add(photo.id);
+          if (!photo.file.type.includes("hei"))
+            photo.thumb = URL.createObjectURL(photo.file);
+        }
+      }
+      const missing = photos.filter((p) => !p.file).length;
+      $("recovery").hidden = !missing;
       $("recovery").textContent =
-        `已恢复 ${photos.length} 页编辑参数。请重新选择原始照片；匹配文件名、大小和修改时间后恢复。`;
+        `已恢复 ${photos.length} 页编辑参数，其中 ${missing} 张旧原图未缓存，请补传；已有选区和页序保留。`;
     }
   } catch {
     message(
       "浏览器无法读取本地保存；仍可创建当前项目，刷新后的恢复可能不可用。",
       true,
     );
+  }
+  setBusy(false);
+  if (photos.length) {
+    showStage("review", false);
+    await openPhoto(currentId);
   }
   render();
 }
@@ -1604,7 +1795,7 @@ const phone = phoneTransfer({
   canImport: () => !busy,
   importPhoto: async (file) => {
     if (busy) return null;
-    await importFiles([file]);
+    await importFiles([file], replacementTargetId || undefined);
     const photo = photos.find((photo) => photo.file === file);
     if (photo)
       return {

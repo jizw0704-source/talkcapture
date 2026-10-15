@@ -1,8 +1,11 @@
-import { revealControl } from "./ui";
+import { revealControl, dropOriginalCache } from "./ui";
 import { test, expect, type Page } from "@playwright/test";
 
 async function connect(desktop: Page, mobile: Page) {
   await desktop.goto("/");
+  await expect(desktop.locator("#add")).toBeEnabled();
+  if (!(await desktop.locator("#importScreen").isVisible()))
+    await desktop.locator("#stepImport").click();
   await desktop.locator("#phoneOpen").click();
   await expect(desktop.locator("#phoneStatus")).toHaveText(
     /选择电脑的 Wi-Fi 地址|没有可用的局域网地址/,
@@ -387,6 +390,62 @@ test("上传中连接失效仍显示失效原因，不被取消提示覆盖", as
       .locator("#phoneHide")
       .click()
       .catch(() => undefined);
+    await context.close();
+  }
+});
+
+test("手机定向补传只恢复指定旧页，并在下次刷新自动恢复原图", async ({
+  page,
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const mobile = await context.newPage();
+  try {
+    await connect(page, mobile);
+    const buffer = await image(page, true);
+    await mobile
+      .locator("#photos")
+      .setInputFiles({ name: "原报告.jpg", mimeType: "image/jpeg", buffer });
+    await mobile.locator("#upload").click();
+    await expect(page.locator("#cacheStatus")).toContainText(
+      "已保存 1 / 1 张原图",
+    );
+    await dropOriginalCache(page);
+    await page.reload();
+    await expect(page.locator("#replaceSource")).toBeVisible();
+    await connect(page, mobile);
+    await revealControl(page, "replaceFromPhone");
+    await page.locator("#replaceFromPhone").click();
+    await expect(page.locator("#phoneReplacementNotice")).toContainText(
+      "原报告.jpg",
+    );
+    await mobile.locator("#photos").setInputFiles({
+      name: "改名后的原报告.jpg",
+      mimeType: "image/jpeg",
+      buffer,
+    });
+    await mobile.locator("#upload").click();
+    await expect(page.locator("#cacheStatus")).toContainText(
+      "已保存 1 / 1 张原图",
+    );
+    await expect(page.locator(".page-row")).toHaveCount(1);
+    await expect(page.locator(".photo-name")).toContainText("原报告.jpg");
+    await expect(mobile.locator("#list")).toContainText("电脑已导入");
+    await page.reload();
+    await expect(page.locator("#cacheStatus")).toContainText(
+      "已保存 1 / 1 张原图",
+    );
+    await expect(page.locator(".missing")).toHaveCount(0);
+  } finally {
+    if (await page.locator("#phonePanel").isVisible())
+      await page
+        .locator("#phoneHide")
+        .click()
+        .catch(() => undefined);
     await context.close();
   }
 });

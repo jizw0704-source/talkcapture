@@ -1,4 +1,4 @@
-import { revealControl } from "./ui";
+import { revealControl, dropOriginalCache } from "./ui";
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -260,6 +260,7 @@ test("重新关联原图不重新检测或覆盖既有手动参数", async ({ pa
   await page.locator("#confirm").click();
   await expect(page.locator("#counts")).toContainText("1 页已确认");
   await page.waitForTimeout(400);
+  await dropOriginalCache(page);
   await page.reload();
   await expect(page.locator("#recovery")).toBeVisible();
   await expect(page.locator("#autoDetect")).toBeChecked();

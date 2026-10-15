@@ -265,11 +265,14 @@ test("排除恢复、拖动与坐标校验、撤销、旋转、亮度和刷新�
   await page.locator("#projectName").fill("恢复测试");
   await page.waitForTimeout(400);
   await page.reload();
-  await expect(page.locator("#recovery")).toContainText("已恢复 3 页编辑参数");
+  await expect(page.locator("#cacheStatus")).toContainText(
+    "已保存 3 / 3 张原图",
+  );
   await expect(page.locator("#projectName")).toHaveValue("恢复测试");
-  await revealControl(page, "export");
+  await revealControl(page, "allowOriginal");
+  await page.locator("#allowOriginal").check();
   await page.locator("#export").click();
-  await expect(page.locator("#status")).toContainText("缺少原图");
+  await expect(page.locator("#download")).toBeVisible();
   await revealControl(page, "demo");
   await page.locator("#demo").click();
   await expect(page.locator("#add")).toBeEnabled();

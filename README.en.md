@@ -22,7 +22,7 @@ Source backup: [private GitHub repository](https://github.com/jizw0704-source/to
 | Page organization | Reorder, exclude, restore, and move pages in batches; preserve manual edits                                  |
 | Batch generation  | Explicitly start automatic organization; review uncertain pages before continuing                            |
 | Export            | Image-based PPTX / PDF, 16:9 or 4:3, with quality or file-size priority                                      |
-| Project recovery  | Save page order and editing metadata; reselect original files after refreshing                               |
+| Project recovery  | Cache original files and editing metadata locally; restore after refreshing once saved                       |
 
 Each exported PowerPoint slide contains an image. Editable text and charts, semantic grouping, deduplication, and recovery of obscured content are not currently supported. Automatic detection uses local geometry, without AI or cloud recognition.
 
@@ -71,7 +71,7 @@ Use `pnpm dev` while editing source files. `pnpm preview` runs the same service 
 
 ## Local data and privacy
 
-Image correction, previews, and document generation run in the desktop browser. Original files are not overwritten. The browser database saves editing metadata, not source images; after a refresh, reimport the originals to recover the project.
+Image correction, previews, and document generation run in the desktop browser. Original files are not overwritten. The browser database caches original files separately from editing metadata. Once saving completes, refreshing restores the originals and edits. Legacy entries or cleared browser data may require supplying the originals again.
 
 Phone transfer is optional and only starts when explicitly enabled. Its local HTTP connection is unencrypted, so it is suitable only for non-sensitive material on trusted Wi-Fi. It must not be exposed to the public internet. Phone files are temporarily stored on the computer during transfer; abnormal termination may leave temporary files. See the [user guide](docs/usage.en.md) for details.
 

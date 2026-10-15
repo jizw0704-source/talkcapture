@@ -38,6 +38,8 @@
         <span id="counts">尚未导入照片</span
         ><button id="addMore" hidden>添加照片</button>
       </div>
+      <p id="cacheStatus" class="hint" role="status" hidden></p>
+      <button id="retryCache" hidden>重试保存原图</button>
       <div id="recovery" class="feedback" hidden></div>
       <div
         id="status"
@@ -116,6 +118,8 @@
             </p>
           </div>
         </div>
+        <p id="phoneReplacementNotice" class="hint" role="status" hidden></p>
+        <button id="cancelPhoneReplacement" hidden>取消当前页补传</button>
         <p id="phoneStatus" role="status" aria-live="polite">
           尚未开启手机传图。
         </p>
@@ -248,6 +252,22 @@
                 <button id="prev" aria-label="上一张">上一张</button
                 ><button id="next" aria-label="下一张">下一张</button>
               </div>
+            </div>
+            <div id="replaceSource" class="replacement-source" hidden>
+              <p id="replacementHint">
+                当前页缺原图。补传会保留已有选区和页序。
+              </p>
+              <div class="actions">
+                <button id="replaceCurrent">从电脑补传当前页</button
+                ><button id="replaceFromPhone">手机补传当前页</button
+                ><button id="cancelReplacement" hidden>取消定向补传</button>
+              </div>
+              <input
+                id="replacementFile"
+                type="file"
+                accept=".jpg,.jpeg,.png,.heic,.heif"
+                hidden
+              />
             </div>
             <div class="toolbar editor-toolbar">
               <button
@@ -466,7 +486,7 @@
           PPT”后，有明确候选的页面会自动校正，不确定的页面集中检查。自动校正不代表人工确认，请检查下载结果。识别失败不会删除照片，最终导出仍从原图生成。
         </p>
         <p>
-          编辑参数保存在当前浏览器中；刷新后需重新选择同一批原始照片来恢复。文件名、大小及修改时间用于本地匹配；同名照片不会被自动删除。清空项目会删除保存的编辑参数。
+          原图与编辑参数保存在当前浏览器本地缓存中；显示保存完成后，刷新可自动恢复。旧照片或缓存被清理时需补传，优先按文件内容匹配；定向补传保留选区和页序。清空项目会删除本工具的缓存副本和编辑参数，不删除电脑或手机原始文件。
         </p>
         <p>
           照片校正、缩略图和输出文件均在浏览器本地生成。可选的手机传图通过局域网暂存到这台电脑，不经过云端，没有分析埋点。HEIC
@@ -483,7 +503,9 @@
     <dialog id="clearDialog">
       <form method="dialog">
         <h2>清空当前项目？</h2>
-        <p>移除本机保存的编辑参数和预览；电脑中的原始照片保留。</p>
+        <p>
+          移除本工具保存的原图缓存、编辑参数和预览；电脑和手机上的原始照片保留。
+        </p>
         <div class="actions">
           <button value="cancel">保留项目</button
           ><button value="clear" class="primary">清空项目</button>
