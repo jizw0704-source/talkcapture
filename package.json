@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:browser": "playwright test",
-    "format": "prettier --write src server tests docs index.html *.json *.md *.config.ts pnpm-workspace.yaml",
-    "format:check": "prettier --check src server tests docs index.html *.json *.md *.config.ts pnpm-workspace.yaml"
+    "format": "prettier --write src shared server tests docs index.html *.json *.md *.config.ts pnpm-workspace.yaml",
+    "format:check": "prettier --check src shared server tests docs index.html *.json *.md *.config.ts pnpm-workspace.yaml"
   },
   "dependencies": {
     "exifr": "7.1.3",

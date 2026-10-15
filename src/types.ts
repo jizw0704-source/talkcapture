@@ -21,6 +21,10 @@ export type Photo = {
   detection?: SlideDetection["status"];
   learnedSuggestion?: boolean;
   digest?: string;
+  reading?: { text: string; confidence: number; digest: string };
+  readingError?: string;
+  reportId?: string;
+  reportTitle?: string;
   sourceNeedsReview?: boolean;
   file?: File;
   thumb?: string;

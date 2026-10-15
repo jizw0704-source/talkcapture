@@ -7,14 +7,49 @@
       name="description"
       content="在本机整理报告照片，核对画面后导出 PPTX 或 PDF。"
     />
+    <link rel="icon" href="/brand/talkcapture-mark.svg" type="image/svg+xml" />
     <title>报告拾光 · TalkCapture</title>
+    <script>
+      try {
+        const display = JSON.parse(
+          localStorage.getItem("talkcapture-display") || "{}",
+        );
+        document.documentElement.dataset.theme = ["light", "dark"].includes(
+          display.theme,
+        )
+          ? display.theme
+          : matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        if (["standard", "large", "larger"].includes(display.font))
+          document.documentElement.dataset.fontSize = display.font;
+      } catch {}
+    </script>
   </head>
   <body data-stage="import" data-empty="true">
     <a class="skip-link" href="#mainContent">跳到主要内容</a>
     <header>
-      <div class="brand">
-        <h1 translate="no">报告拾光</h1>
-        <span translate="no">TalkCapture</span>
+      <div class="brand" translate="no">
+        <img
+          class="brand-mark"
+          src="/brand/talkcapture-mark.svg"
+          alt=""
+          width="44"
+          height="44"
+        />
+        <div class="brand-wordmark">
+          <div class="brand-name">
+            <h1>报告拾光</h1>
+            <span>TalkCapture</span>
+          </div>
+          <img
+            class="brand-signature"
+            src="/brand/by-pheno.svg"
+            alt="by pheno"
+            width="144"
+            height="17"
+          />
+        </div>
       </div>
       <nav class="steps" aria-label="整理步骤">
         <button
@@ -31,7 +66,16 @@
           <span>3</span> 导出报告
         </button>
       </nav>
-      <span class="local-label">本机处理 · 原图保留</span>
+      <div class="header-tools">
+        <span class="local-label">原图本机处理</span
+        ><button
+          id="settingsOpen"
+          aria-haspopup="dialog"
+          aria-controls="settingsPanel"
+        >
+          设置
+        </button>
+      </div>
     </header>
     <main id="mainContent" tabindex="-1">
       <div class="overview">
@@ -161,9 +205,8 @@
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="m4 17 5-5 4 4 4-6 3 5" />
+                <rect x="6" y="2" width="12" height="20" rx="3" />
+                <path d="M10 5h4M11 19h2m-4-6 3-3 3 3m-3-3v6" />
               </svg>
               <strong>手机扫码上传照片</strong
               ><span>连接同一 Wi-Fi，在电脑确认连接</span
@@ -205,6 +248,22 @@
           </details>
         </div>
       </section>
+      <details id="reportWorkspace" class="report-workspace" hidden>
+        <summary>分报告与内容总结</summary>
+        <p class="hint">
+          在本机识别文字并建议分组。核对后，每份报告可单独下载
+          Markdown，交给自己的 Agent。
+        </p>
+        <div class="report-actions">
+          <button id="analyzeReports">识别内容并自动分报告</button
+          ><button id="cancelAnalysis" hidden>取消识别</button>
+        </div>
+        <p id="reportStatus" role="status" class="hint">
+          照片与文字识别在本机处理。「MiniMax
+          解读」仅发送当前报告的识别文字，不发送原图；云端调用可能计费。
+        </p>
+        <div id="reportList"></div>
+      </details>
       <section id="reviewScreen" aria-labelledby="reviewTitle" hidden>
         <div class="screen-heading">
           <h2 id="reviewTitle" tabindex="-1">核对画面</h2>
@@ -489,8 +548,9 @@
           原图与编辑参数保存在当前浏览器本地缓存中；显示保存完成后，刷新可自动恢复。旧照片或缓存被清理时需补传，优先按文件内容匹配；定向补传保留选区和页序。清空项目会删除本工具的缓存副本和编辑参数，不删除电脑或手机原始文件。
         </p>
         <p>
-          照片校正、缩略图和输出文件均在浏览器本地生成。可选的手机传图通过局域网暂存到这台电脑，不经过云端，没有分析埋点。HEIC
-          / HEIF
+          照片校正、缩略图和输出文件均在浏览器本地生成。可选的手机传图通过局域网暂存到这台电脑，不经过云端，没有分析埋点。只有主动点击「MiniMax
+          解读」时，选中报告的识别文字与来源页码才发送到
+          MiniMax，不发送原图；密钥仅在电脑端配置。HEIC / HEIF
           使用本地解码器，无法解码的文件会逐项列出。严重模糊、遮挡和过曝不能恢复缺失内容。
         </p>
         <p>
@@ -514,5 +574,112 @@
     </dialog>
 
     <script type="module" src="/src/main.ts"></script>
+    <dialog id="settingsPanel" aria-labelledby="settingsTitle">
+      <div class="settings-heading">
+        <h2 id="settingsTitle">设置</h2>
+        <button id="settingsClose" autofocus>关闭</button>
+      </div>
+      <section class="settings-section" aria-labelledby="modelSettingsTitle">
+        <h3 id="modelSettingsTitle">模型</h3>
+        <p class="hint">
+          MiniMax
+          云端解读仅发送选中报告的识别文字和页码，不发送原图。调用可能计费。
+        </p>
+        <label
+          >模型名称<input
+            id="modelChoice"
+            list="modelOptions"
+            maxlength="80"
+            autocomplete="off" /><datalist id="modelOptions">
+            <option value="MiniMax-M2.5"></option>
+            <option value="MiniMax-M2.7"></option>
+            <option value="MiniMax-M3"></option></datalist
+        ></label>
+        <label
+          >服务地区<select id="modelRegion">
+            <option value="https://api.minimax.cn/v1">国内 · MiniMax</option>
+            <option value="https://api.minimax.io/v1">国际 · MiniMax</option>
+            <option value="https://api.minimaxi.com/v1">国内 · 兼容地址</option>
+          </select></label
+        >
+        <label
+          >API 密钥<input
+            id="modelKey"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="填写新密钥；留空保留原密钥"
+            maxlength="4096"
+        /></label>
+        <p id="keyState" class="hint"></p>
+        <div class="report-actions">
+          <button id="saveModelSettings">保存模型配置</button
+          ><button id="testModelSettings">测试已保存配置</button>
+        </div>
+        <p
+          id="settingsStatus"
+          class="hint"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </section>
+      <section class="settings-section" aria-labelledby="displaySettingsTitle">
+        <h3 id="displaySettingsTitle">显示</h3>
+        <label
+          >语言 / Language<select id="languageChoice" data-language-choice>
+            <option value="zh" lang="zh-CN">中文</option>
+            <option value="en" lang="en">English</option>
+          </select></label
+        >
+        <label
+          >主题<select id="themeChoice">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+          </select></label
+        >
+        <label
+          >字体大小<select id="fontChoice">
+            <option value="standard">标准</option>
+            <option value="large">大</option>
+            <option value="larger">更大</option>
+          </select></label
+        >
+      </section>
+      <section class="settings-section" aria-labelledby="aboutSettingsTitle">
+        <h3 id="aboutSettingsTitle">关于报告拾光</h3>
+        <div class="about-brand" translate="no">
+          <img
+            class="brand-mark"
+            src="/brand/talkcapture-mark.svg"
+            alt=""
+            width="52"
+            height="52"
+          />
+          <div class="brand-wordmark">
+            <strong>报告拾光 · TalkCapture</strong
+            ><img
+              class="brand-signature"
+              src="/brand/by-pheno.svg"
+              alt="by pheno"
+              width="144"
+              height="17"
+            />
+          </div>
+        </div>
+        <p class="hint">将报告照片整理成 PPT、PDF 与可溯源的 Markdown 总结。</p>
+        <p class="hint" lang="en">
+          Organize presentation photos and create source-linked summaries.
+        </p>
+        <p id="versionInfo" class="hint"></p>
+        <p id="buildInfo" class="hint"></p>
+        <a
+          href="https://github.com/jizw0704-source/talkcapture"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub 仓库</a
+        >
+      </section>
+    </dialog>
   </body>
 </html>

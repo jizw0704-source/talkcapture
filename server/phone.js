@@ -1,3 +1,5 @@
+import { t, uiText, uiAttr, setupLocale } from "/i18n.js";
+setupLocale();
 const $ = (id) => document.getElementById(id);
 const qr = location.hash.slice(1);
 const storage = "report-phone-session";
@@ -22,7 +24,7 @@ window.addEventListener("hashchange", () => {
   if (location.hash) location.reload();
 });
 const say = (text, error = false) => {
-  if ($("status").textContent !== text) $("status").textContent = text;
+  if ($("status").textContent !== text) uiText($("status"), () => text);
   $("status").classList.toggle("error", error);
 };
 function render() {
@@ -32,9 +34,22 @@ function render() {
       ["ready", "sending", "sent"].includes(i.state),
     ),
     reviews = items.filter((i) => i.reviewReason);
-  $("batchCounts").textContent = items.length
-    ? `${items.length} 张 · 已导入 ${done.length} · 待完成 ${pending.length} · 失败 ${failed.length}${reviews.length ? ` · 边界待核对 ${reviews.length}` : ""}`
-    : "选择照片后，在这里查看传输结果。";
+  uiText($("batchCounts"), () =>
+    items.length
+      ? t(
+          "{0} \u5F20 \u00B7 \u5DF2\u5BFC\u5165 {1} \u00B7 \u5F85\u5B8C\u6210 {2} \u00B7 \u5931\u8D25 {3}{4}",
+          items.length,
+          done.length,
+          pending.length,
+          failed.length,
+          reviews.length
+            ? t(" \u00B7 \u8FB9\u754C\u5F85\u6838\u5BF9 {0}", reviews.length)
+            : "",
+        )
+      : t(
+          "\u9009\u62E9\u7167\u7247\u540E\uFF0C\u5728\u8FD9\u91CC\u67E5\u770B\u4F20\u8F93\u7ED3\u679C\u3002",
+        ),
+  );
   const reminder =
     batchStarted && !running && !pending.length && failed.length
       ? failed.map((i) => `${i.file.name}:${i.message}`).join("|")
@@ -45,10 +60,20 @@ function render() {
       `本轮已结束：${done.length} 张已导入，${failed.length} 张待处理，请查看失败清单。`,
     );
   if (reminder && reminder !== lastReminder) {
-    $("failureHeading").textContent =
-      `${done.length ? "其他照片已处理完" : "本轮传输已结束"}，还有 ${failed.length} 张需要重传`;
-    $("failureDetail").textContent =
-      "失败照片和原因已集中列出。原文件仍在此页面，可以直接重试，无需重新查找相册。若文件损坏或过大，请按原因重新选择或转换。";
+    uiText($("failureHeading"), () =>
+      t(
+        "{0}\uFF0C\u8FD8\u6709 {1} \u5F20\u9700\u8981\u91CD\u4F20",
+        done.length
+          ? t("\u5176\u4ED6\u7167\u7247\u5DF2\u5904\u7406\u5B8C")
+          : t("\u672C\u8F6E\u4F20\u8F93\u5DF2\u7ED3\u675F"),
+        failed.length,
+      ),
+    );
+    uiText($("failureDetail"), () =>
+      t(
+        "\u5931\u8D25\u7167\u7247\u548C\u539F\u56E0\u5DF2\u96C6\u4E2D\u5217\u51FA\u3002\u539F\u6587\u4EF6\u4ECD\u5728\u6B64\u9875\u9762\uFF0C\u53EF\u4EE5\u76F4\u63A5\u91CD\u8BD5\uFF0C\u65E0\u9700\u91CD\u65B0\u67E5\u627E\u76F8\u518C\u3002\u82E5\u6587\u4EF6\u635F\u574F\u6216\u8FC7\u5927\uFF0C\u8BF7\u6309\u539F\u56E0\u91CD\u65B0\u9009\u62E9\u6216\u8F6C\u6362\u3002",
+      ),
+    );
     $("filter").value = "failed";
     $("failureHeading").focus({ preventScroll: true });
     $("failureNotice").scrollIntoView({ block: "nearest" });
@@ -78,16 +103,16 @@ function render() {
         retry = document.createElement("button"),
         replace = document.createElement("button"),
         actions = document.createElement("div");
-      thumb.alt = `${item.file.name}的缩略图`;
+      uiAttr(thumb, "alt", () => t("{0}的缩略图", item.file.name));
       thumb.loading = "lazy";
       thumb.src = item.url;
       thumb.onerror = () => {
         thumb.hidden = true;
       };
-      name.textContent = item.file.name;
+      uiText(name, () => item.file.name);
       actions.className = "item-actions";
-      retry.textContent = "只重试这张";
-      replace.textContent = "重新选择这张";
+      uiText(retry, () => t("\u53EA\u91CD\u8BD5\u8FD9\u5F20"));
+      uiText(replace, () => t("\u91CD\u65B0\u9009\u62E9\u8FD9\u5F20"));
       retry.onclick = () => void upload(true, item);
       replace.onclick = () => {
         const picker = document.createElement("input");
@@ -106,9 +131,9 @@ function render() {
             item.state === "failed"
               ? "超过 30 MB，请缩小后重试"
               : "已重新选择，待上传";
-          name.textContent = file.name;
+          uiText(name, () => file.name);
           thumb.hidden = false;
-          thumb.alt = `${file.name}的缩略图`;
+          uiAttr(thumb, "alt", () => t("{0}的缩略图", file.name));
           thumb.src = item.url;
           lastReminder = "";
           render();
@@ -133,22 +158,35 @@ function render() {
         : filter === "review"
           ? !item.reviewReason
           : false;
-    item.stateElement.textContent = item.message;
+    uiText(item.stateElement, () => item.message);
     item.stateElement.className = item.state === "failed" ? "error" : "";
-    item.reasonElement.textContent = item.reviewReason || "";
+    uiText(item.reasonElement, () => item.reviewReason || "");
     item.reasonElement.hidden = !item.reviewReason;
     item.retryButton.hidden = item.replaceButton.hidden =
       item.state !== "failed";
     item.retryButton.disabled = running || !approved;
     item.replaceButton.disabled = running;
   }
-  $("pickerLabel").textContent = items.length ? "继续添加照片" : "选择相册照片";
+  uiText($("pickerLabel"), () =>
+    items.length
+      ? t("\u7EE7\u7EED\u6DFB\u52A0\u7167\u7247")
+      : t("\u9009\u62E9\u76F8\u518C\u7167\u7247"),
+  );
   $("photos").disabled = !approved || running;
   $("upload").disabled =
     !approved || running || !items.some((i) => i.state === "ready");
-  $("upload").textContent = running ? "正在传输…" : "传到电脑";
+  uiText($("upload"), () =>
+    running
+      ? t("\u6B63\u5728\u4F20\u8F93\u2026")
+      : t("\u4F20\u5230\u7535\u8111"),
+  );
   $("retry").hidden = running || !approved || !failed.length;
-  $("retry").textContent = `重试全部失败照片（${failed.length}）`;
+  uiText($("retry"), () =>
+    t(
+      "\u91CD\u8BD5\u5168\u90E8\u5931\u8D25\u7167\u7247\uFF08{0}\uFF09",
+      failed.length,
+    ),
+  );
   $("cancel").hidden = !running;
 }
 $("filter").onchange = render;
@@ -176,11 +214,21 @@ async function poll() {
     const data = await api("/api/status");
     approved = data.approved;
     expires = data.expires;
-    $("connection").textContent = approved
-      ? "电脑已允许连接，可以选择照片。"
-      : "请在电脑上点击“允许这台手机”。";
-    $("expiry").textContent =
-      `连接剩余 ${Math.max(0, Math.ceil((expires - Date.now()) / 60000))} 分钟`;
+    uiText($("connection"), () =>
+      approved
+        ? t(
+            "\u7535\u8111\u5DF2\u5141\u8BB8\u8FDE\u63A5\uFF0C\u53EF\u4EE5\u9009\u62E9\u7167\u7247\u3002",
+          )
+        : t(
+            "\u8BF7\u5728\u7535\u8111\u4E0A\u70B9\u51FB\u201C\u5141\u8BB8\u8FD9\u53F0\u624B\u673A\u201D\u3002",
+          ),
+    );
+    uiText($("expiry"), () =>
+      t(
+        "\u8FDE\u63A5\u5269\u4F59 {0} \u5206\u949F",
+        Math.max(0, Math.ceil((expires - Date.now()) / 60000)),
+      ),
+    );
     $("connect").hidden = true;
     for (const item of items) {
       const remote = data.files.find((f) => f.id === item.id);
@@ -195,10 +243,15 @@ async function poll() {
     }
     render();
   } catch (error) {
-    $("connection").textContent =
+    uiText($("connection"), () =>
       error.status === 410 || error.status === 401
-        ? "连接已失效，请在电脑上重新开启并扫码。"
-        : "暂时无法连接电脑，请检查 Wi-Fi，稍后会重试。";
+        ? t(
+            "\u8FDE\u63A5\u5DF2\u5931\u6548\uFF0C\u8BF7\u5728\u7535\u8111\u4E0A\u91CD\u65B0\u5F00\u542F\u5E76\u626B\u7801\u3002",
+          )
+        : t(
+            "\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u7535\u8111\uFF0C\u8BF7\u68C0\u67E5 Wi-Fi\uFF0C\u7A0D\u540E\u4F1A\u91CD\u8BD5\u3002",
+          ),
+    );
     approved = false;
     render();
     if (error.status === 410 || error.status === 401) {
@@ -223,7 +276,11 @@ async function poll() {
 }
 $("connect").onclick = async () => {
   if (!qr && !key) {
-    $("connection").textContent = "没有有效二维码，请重新扫描电脑上的二维码。";
+    uiText($("connection"), () =>
+      t(
+        "\u6CA1\u6709\u6709\u6548\u4E8C\u7EF4\u7801\uFF0C\u8BF7\u91CD\u65B0\u626B\u63CF\u7535\u8111\u4E0A\u7684\u4E8C\u7EF4\u7801\u3002",
+      ),
+    );
     return;
   }
   $("connect").disabled = true;
@@ -247,7 +304,7 @@ $("connect").onclick = async () => {
     }
     await poll();
   } catch (error) {
-    $("connection").textContent = error.message;
+    uiText($("connection"), () => error.message);
   } finally {
     $("connect").disabled = false;
   }
@@ -380,3 +437,5 @@ $("cancel").onclick = () => {
 setInterval(() => void poll(), 1500);
 if (key) void poll();
 render();
+
+document.addEventListener("languagechange", () => render());

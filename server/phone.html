@@ -9,6 +9,15 @@
   <body>
     <main>
       <span class="eyebrow">报告拾光</span>
+      <label class="phone-language"
+        >语言 / Language<select
+          data-language-choice
+          aria-label="语言 / Language"
+        >
+          <option value="zh" lang="zh-CN">中文</option>
+          <option value="en" lang="en">English</option>
+        </select></label
+      >
       <h1>照片传到电脑</h1>
       <p class="intro">选好报告照片，确认传输，回到电脑整理。</p>
       <p class="muted">同一可信 Wi-Fi · 原图保留 · 传输未加密</p>
@@ -77,6 +86,6 @@
         </p>
       </details>
     </main>
-    <script src="/phone.js" defer></script>
+    <script type="module" src="/phone.js"></script>
   </body>
 </html>

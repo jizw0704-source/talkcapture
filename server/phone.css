@@ -274,3 +274,15 @@ li .error {
 p:empty {
   display: none;
 }
+.phone-language {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 13px;
+}
+.phone-language select {
+  min-height: 44px;
+  max-width: 150px;
+  font: inherit;
+}

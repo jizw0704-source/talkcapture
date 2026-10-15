@@ -1,3 +1,4 @@
+import { t, uiText, uiAttr, getLanguage } from "../shared/i18n.js";
 type RemotePhoto = {
   id: string;
   name: string;
@@ -8,17 +9,23 @@ type RemotePhoto = {
 };
 type Status = {
   expires: number;
-  peer: { name: string; approved: boolean } | null;
+  peer: {
+    name: string;
+    approved: boolean;
+  } | null;
   files: RemotePhoto[];
 };
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
-
 export function phoneTransfer(options: {
   canImport: () => boolean;
-  importPhoto: (
-    file: File,
-  ) => Promise<boolean | null | { reviewReason?: string }>;
+  importPhoto: (file: File) => Promise<
+    | boolean
+    | null
+    | {
+        reviewReason?: string;
+      }
+  >;
 }) {
   let owner = "",
     expires = 0,
@@ -30,7 +37,7 @@ export function phoneTransfer(options: {
   const failures = new Map<string, string>();
   const reviews = new Map<string, string>();
   const status = (text: string, error = false) => {
-    $("phoneStatus").textContent = text;
+    uiText($("phoneStatus"), () => text);
     $("phoneStatus").classList.toggle("error", error);
   };
   async function api(
@@ -118,8 +125,12 @@ export function phoneTransfer(options: {
       const data: Status = await api("status", "GET", undefined, key);
       if (closed || owner !== key) return;
       expires = data.expires;
-      $("phoneRemaining").textContent =
-        `剩余 ${Math.max(0, Math.ceil((expires - Date.now()) / 60000))} 分钟`;
+      uiText($("phoneRemaining"), () =>
+        t(
+          "剩余 {0} 分钟",
+          Math.max(0, Math.ceil((expires - Date.now()) / 60000)),
+        ),
+      );
       $("phoneApprove").hidden = !data.peer || data.peer.approved;
       const imported = data.files.filter((f) => f.state === "imported").length,
         rejected = data.files.filter((f) => f.state === "rejected").length;
@@ -146,7 +157,12 @@ export function phoneTransfer(options: {
             lastModified: photo.modified,
           });
           if (closed || owner !== key || !options.canImport()) break;
-          let imported: boolean | null | { reviewReason?: string };
+          let imported:
+            | boolean
+            | null
+            | {
+                reviewReason?: string;
+              };
           try {
             imported = await options.importPhoto(file);
           } catch (error) {
@@ -173,7 +189,9 @@ export function phoneTransfer(options: {
       }
     } catch (error) {
       if (closed || owner !== key) return;
-      const e = error as Error & { status?: number };
+      const e = error as Error & {
+        status?: number;
+      };
       status(e.message, true);
       if (e.status === 410 || e.status === 401) {
         reset();
@@ -217,6 +235,9 @@ export function phoneTransfer(options: {
       owner = data.owner;
       expires = data.expires;
       const qr = await import("qrcode");
+      const uploadUrl = new URL(data.url);
+      uploadUrl.searchParams.set("lang", getLanguage());
+      data.url = uploadUrl.href;
       const code = await qr.toDataURL(data.url, {
         width: 256,
         margin: 4,

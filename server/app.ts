@@ -1,3 +1,5 @@
+import { settingsApi } from "./settings.ts";
+import { analysisApi } from "./analysis.ts";
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -28,6 +30,14 @@ const server = createServer(async (req, res) => {
   if (req.headers.host !== `127.0.0.1:${desktopPort}`) {
     res.writeHead(403);
     res.end("Only the local desktop page is allowed.");
+    return;
+  }
+  if (req.url?.startsWith("/api/settings")) {
+    await settingsApi(req, res);
+    return;
+  }
+  if (req.url?.startsWith("/api/analysis/")) {
+    await analysisApi(req, res);
     return;
   }
   if (req.url?.startsWith("/api/phone/")) {

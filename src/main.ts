@@ -1,3 +1,7 @@
+import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
+import { setupSettings } from "./settings";
+import { setupReports } from "./report-ui";
+let refreshReports = () => {};
 import "./style.css";
 import { suggestReportName } from "./naming";
 import {
@@ -24,7 +28,7 @@ import { fileDigest, recoveryTargets } from "./recovery";
 import type { Photo } from "./types";
 import { phoneTransfer } from "./phone";
 import { organizeAutomatically, type AutomaticIssue } from "./automation";
-
+setupLocale();
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -50,9 +54,14 @@ function updateSuggestedName(force = false) {
   input("projectName").value = generatedName;
 }
 function renderLearning() {
-  $("learningStatus").textContent = learningEnabled()
-    ? `已记住 ${loadCorrections().length} 条纠正经验；仅对相似构图提供待核对选区，不训练通用模型。`
-    : "已关闭，不保存或使用纠正经验。";
+  uiText($("learningStatus"), () =>
+    learningEnabled()
+      ? t(
+          "已记住 {0} 条纠正经验；仅对相似构图提供待核对选区，不训练通用模型。",
+          loadCorrections().length,
+        )
+      : t("已关闭，不保存或使用纠正经验。"),
+  );
 }
 input("learnCorrections").checked = learningEnabled();
 input("learnCorrections").onchange = () => {
@@ -105,7 +114,7 @@ const current = () => photos.find((p) => p.id === currentId);
 const copy = (points: Point[]) => points.map((p) => ({ ...p }));
 const message = (text: string, error = false) => {
   $("status").hidden = !text;
-  $("status").textContent = text;
+  uiText($("status"), () => text);
   $("status").classList.toggle("error", error);
 };
 const progress = (done: number, total: number, label: string) => {
@@ -117,12 +126,11 @@ const progress = (done: number, total: number, label: string) => {
 const button = (text: string, action: () => void) => {
   const el = document.createElement("button");
   el.type = "button";
-  el.textContent = text;
+  uiText(el, () => text);
   el.onclick = action;
   return el;
 };
 const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
-
 function renderStage() {
   document.body.dataset.stage = stage;
   document.body.dataset.empty = String(!photos.length);
@@ -162,7 +170,6 @@ $("addMore").onclick = () => showStage("import");
 $("continueReview").onclick = () => showStage("review");
 $("goExport").onclick = () => showStage("export");
 $("backReview").onclick = () => showStage("review");
-
 function revokeDownload() {
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = "";
@@ -185,16 +192,32 @@ function renderCacheStatus() {
     !photos.length || (!uncached.length && !metadataError);
   $<HTMLButtonElement>("retryCache").disabled =
     busy || savingCount > 0 || saveTimerPending;
-  $("cacheStatus").textContent =
+  uiText($("cacheStatus"), () =>
     savingCount || saveTimerPending
-      ? "正在保存本地缓存，请稍候…"
+      ? t("正在保存本地缓存，请稍候\u2026")
       : metadataError
-        ? `编辑参数未保存：${metadataError}。当前照片仍可导出，请勿刷新，或重试保存。`
+        ? t(
+            "编辑参数未保存：{0}。当前照片仍可导出，请勿刷新，或重试保存。",
+            metadataError,
+          )
         : uncached.length
-          ? `${uncached.length} 张原图未能缓存：${cacheFailures.get(uncached[0].id) || "尚未保存"}。刷新后需补传，可重试保存。`
+          ? t(
+              "{0} 张原图未能缓存：{1}。刷新后需补传，可重试保存。",
+              uncached.length,
+              cacheFailures.get(uncached[0].id) || t("尚未保存"),
+            )
           : missing
-            ? `已缓存 ${available.length} 张原图；另有 ${missing} 页旧记录需补传，补齐后可刷新恢复。`
-            : `已保存 ${photos.length} / ${photos.length} 张原图到本地，刷新后可自动恢复。`;
+            ? t(
+                "已缓存 {0} 张原图；另有 {1} 页旧记录需补传，补齐后可刷新恢复。",
+                available.length,
+                missing,
+              )
+            : t(
+                "已保存 {0} / {1} 张原图到本地，刷新后可自动恢复。",
+                photos.length,
+                photos.length,
+              ),
+  );
 }
 async function persistProject() {
   const snapshot = {
@@ -287,7 +310,7 @@ function setBusy(value: boolean) {
   busy = value;
   document
     .querySelectorAll<HTMLButtonElement>(
-      "button:not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control])",
+      "button:not(#settingsOpen):not(#settingsClose):not(#saveModelSettings):not(#testModelSettings):not(#cancelAnalysis):not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control])",
     )
     .forEach((el) => {
       el.disabled = value;
@@ -295,7 +318,7 @@ function setBusy(value: boolean) {
   document
     .querySelectorAll<
       HTMLInputElement | HTMLSelectElement
-    >("input:not(#phoneLink),select:not(#phoneNetwork)")
+    >("input:not(#phoneLink):not(#modelChoice):not(#modelKey),select:not(#languageChoice):not(#phoneNetwork):not(#modelRegion):not(#themeChoice):not(#fontChoice)")
     .forEach((el) => {
       el.disabled = value;
     });
@@ -314,11 +337,13 @@ function renderAutomatic() {
   $("automaticPanel").setAttribute("aria-busy", String(!!automaticController));
   const start = $<HTMLButtonElement>("autoOrganize");
   start.disabled = busy || !photos.some((p) => p.file && !p.excluded);
-  start.textContent = automaticController
-    ? "正在自动整理…"
-    : automaticIssues.length
-      ? "继续整理并生成 PPT"
-      : "自动整理并生成 PPT";
+  uiText(start, () =>
+    automaticController
+      ? t("正在自动整理\u2026")
+      : automaticIssues.length
+        ? t("继续整理并生成 PPT")
+        : t("自动整理并生成 PPT"),
+  );
   $("cancelAutomatic").hidden = !automaticController;
   const pending = automaticIssues.filter((issue) => {
     const photo = photos.find((p) => p.id === issue.photoId);
@@ -332,11 +357,13 @@ function renderAutomatic() {
   const ready = included.filter(
     (photo) => photo.file && photo.processed && !validateCorners(photo.corners),
   ).length;
-  $("automaticSummary").textContent = pending.length
-    ? `${included.length} 页保留 · ${pending.length} 页待检查`
-    : `${included.length} 页保留 · ${ready} 页已就绪`;
+  uiText($("automaticSummary"), () =>
+    pending.length
+      ? t("{0} 页保留 \u00B7 {1} 页待检查", included.length, pending.length)
+      : t("{0} 页保留 \u00B7 {1} 页已就绪", included.length, ready),
+  );
   $("automaticReview").hidden = !pending.length;
-  $("automaticReviewTitle").textContent = `需要检查 ${pending.length} 页`;
+  uiText($("automaticReviewTitle"), () => t("需要检查 {0} 页", pending.length));
   const list = $("automaticIssues");
   list.replaceChildren();
   for (const issue of pending) {
@@ -348,13 +375,12 @@ function renderAutomatic() {
     });
     open.disabled = busy;
     const reason = document.createElement("span");
-    reason.textContent = issue.reason;
+    uiText(reason, () => issue.reason);
     open.append(reason);
     item.append(open);
     list.append(item);
   }
 }
-
 async function runAutomatic() {
   if (busy) return;
   const included = photos.filter((photo) => !photo.excluded);
@@ -449,7 +475,6 @@ $("cancelAutomatic").onclick = () => {
   automaticController?.abort();
   stopProcessing("自动整理已取消。");
 };
-
 function renderSummary() {
   renderCacheStatus();
   const needsReview = photos.filter(
@@ -460,12 +485,23 @@ function renderSummary() {
       (p.corners.length !== 4 || p.learnedSuggestion || p.sourceNeedsReview),
   );
   $("importReview").hidden = !needsReview.length;
-  $("importReviewSummary").textContent =
-    `${needsReview.length} 张边界待核对 · 点击直接定位照片`;
+  uiText($("importReviewSummary"), () =>
+    t("{0} 张边界待核对 \u00B7 点击直接定位照片", needsReview.length),
+  );
   $("importReviewList").replaceChildren();
   for (const photo of needsReview) {
     const control = document.createElement("button");
-    control.textContent = `${photo.name} · ${photo.sourceNeedsReview ? "补传原图需核对" : photo.learnedSuggestion ? "经验选区需确认" : "需手动选四角"}`;
+    uiText(control, () =>
+      t(
+        "{0} \u00B7 {1}",
+        photo.name,
+        photo.sourceNeedsReview
+          ? t("补传原图需核对")
+          : photo.learnedSuggestion
+            ? t("经验选区需确认")
+            : t("需手动选四角"),
+      ),
+    );
     control.onclick = () => {
       showStage("review", false);
       void openPhoto(photo.id);
@@ -476,34 +512,65 @@ function renderSummary() {
   const included = photos.filter((p) => !p.excluded),
     processed = included.filter((p) => p.processed);
   const automated = processed.filter((p) => p.automated).length;
-  $("counts").textContent = photos.length
-    ? `${photos.length} 张照片 · ${processed.length - automated} 页已确认${automated ? ` · ${automated} 页自动校正` : ""} · ${photos.filter((p) => p.excluded).length} 页已排除`
-    : "尚未导入照片";
-  $("pageCount").textContent = `${included.length} 页保留`;
-  $("exportSummary").textContent =
-    `${included.length} 页待导出 · ${included.length - processed.length} 页${automated ? "待处理" : "未确认"}`;
+  uiText($("counts"), () =>
+    photos.length
+      ? t(
+          "{0} 张照片 \u00B7 {1} 页已确认{2} \u00B7 {3} 页已排除",
+          photos.length,
+          processed.length - automated,
+          automated ? t(" \u00B7 {0} 页自动校正", automated) : "",
+          photos.filter((p) => p.excluded).length,
+        )
+      : t("尚未导入照片"),
+  );
+  uiText($("pageCount"), () => t("{0} 页保留", included.length));
+  uiText($("exportSummary"), () =>
+    t(
+      "{0} 页待导出 \u00B7 {1} 页{2}",
+      included.length,
+      included.length - processed.length,
+      automated ? t("待处理") : t("未确认"),
+    ),
+  );
   const missing = included.filter((p) => !p.file).length;
   $("recovery").hidden = !missing;
   const pending = included.length - processed.length;
-  $("exportCheck").textContent = missing
-    ? `缺少 ${missing} 张原图，请返回导入重新选择。`
-    : pending && !input("allowOriginal").checked
-      ? `还有 ${pending} 页未确认，请返回核对，或在更多选项中选择按原图导出。`
-      : pending
-        ? `${pending} 页未确认，将按原图导出。`
-        : automated
-          ? `${processed.length} 页已就绪（${automated} 页自动校正），可以生成文件。请检查自动裁切结果。`
-          : `已确认 ${processed.length} 页，可以生成文件。`;
-  $("add").textContent = photos.some((p) => !p.file)
-    ? "重新选择原图"
-    : photos.length
-      ? "继续添加照片"
-      : "从电脑选择";
+  uiText($("exportCheck"), () =>
+    missing
+      ? t("缺少 {0} 张原图，请返回导入重新选择。", missing)
+      : pending && !input("allowOriginal").checked
+        ? t(
+            "还有 {0} 页未确认，请返回核对，或在更多选项中选择按原图导出。",
+            pending,
+          )
+        : pending
+          ? t("{0} 页未确认，将按原图导出。", pending)
+          : automated
+            ? t(
+                "{0} 页已就绪（{1} 页自动校正），可以生成文件。请检查自动裁切结果。",
+                processed.length,
+                automated,
+              )
+            : t("已确认 {0} 页，可以生成文件。", processed.length),
+  );
+  uiText($("add"), () =>
+    photos.some((p) => !p.file)
+      ? t("重新选择原图")
+      : photos.length
+        ? t("继续添加照片")
+        : t("从电脑选择"),
+  );
   renderStage();
   $<HTMLButtonElement>("export").disabled = busy || !included.length;
   const compact = select("quality").value === "compact";
-  $("estimate").textContent =
-    `等比例完整放入页面，不拉伸。${compact ? "体积优先：最长边不超过 1920 px，JPEG 质量 82%。" : "清晰优先：最长边不超过 3200 px，JPEG 质量 95%。"} 不会放大低分辨率原图；导出时可能下采样，原始文件不变。`;
+  uiText($("estimate"), () =>
+    t(
+      "等比例完整放入页面，不拉伸。{0} 不会放大低分辨率原图；导出时可能下采样，原始文件不变。",
+      compact
+        ? t("体积优先：最长边不超过 1920 px，JPEG 质量 82%。")
+        : t("清晰优先：最长边不超过 3200 px，JPEG 质量 95%。"),
+    ),
+  );
   $("outputPage").style.aspectRatio =
     select("aspect").value === "wide" ? "16 / 9" : "4 / 3";
 }
@@ -512,7 +579,7 @@ function renderPages() {
   list.replaceChildren();
   if (!photos.length) {
     const p = document.createElement("p");
-    p.textContent = "导入后在这里查看和调整页序。";
+    uiText(p, () => t("导入后在这里查看和调整页序。"));
     p.className = "empty-small";
     list.append(p);
   }
@@ -547,14 +614,18 @@ function renderPages() {
     box.type = "checkbox";
     box.checked = checked.has(photo.id);
     box.disabled = busy;
-    box.setAttribute("aria-label", `勾选第 ${index + 1} 页 ${photo.name}`);
+    uiAttr(box, "aria-label", () =>
+      t("勾选第 {0} 页 {1}", index + 1, photo.name),
+    );
     box.onchange = () =>
       box.checked ? checked.add(photo.id) : checked.delete(photo.id);
     label.append(box);
     const open = button("", () => void openPhoto(photo.id));
     open.className = "page-open";
     open.disabled = busy;
-    open.setAttribute("aria-label", `打开第 ${index + 1} 页 ${photo.name}`);
+    uiAttr(open, "aria-label", () =>
+      t("打开第 {0} 页 {1}", index + 1, photo.name),
+    );
     if (photo.thumb) {
       const img = document.createElement("img");
       img.src = photo.thumb;
@@ -569,25 +640,27 @@ function renderPages() {
       title = document.createElement("span"),
       status = document.createElement("span");
     title.className = "photo-name";
-    title.textContent = `${index + 1}. ${photo.name}`;
+    uiText(title, () => `${index + 1}. ${photo.name}`);
     status.className = `page-caption${!photo.file ? " missing" : ""}`;
-    status.textContent = !photo.file
-      ? "请重新选择原图"
-      : photo.excluded
-        ? "已排除 · 原图保留"
-        : photo.processed
-          ? "已确认"
-          : photo.sourceNeedsReview
-            ? "补传原图 · 请核对选区"
-            : photo.learnedSuggestion
-              ? "经验选区 · 待核对"
-              : photo.detection === "suggested"
-                ? "自动定位 · 待确认"
-                : photo.detection
-                  ? "需手动选四角"
-                  : "待校正 / 待确认";
+    uiText(status, () =>
+      !photo.file
+        ? t("请重新选择原图")
+        : photo.excluded
+          ? t("已排除 \u00B7 原图保留")
+          : photo.processed
+            ? t("已确认")
+            : photo.sourceNeedsReview
+              ? t("补传原图 \u00B7 请核对选区")
+              : photo.learnedSuggestion
+                ? t("经验选区 \u00B7 待核对")
+                : photo.detection === "suggested"
+                  ? t("自动定位 \u00B7 待确认")
+                  : photo.detection
+                    ? t("需手动选四角")
+                    : t("待校正 / 待确认"),
+    );
     if (photo.file && !photo.excluded && photo.processed && photo.automated)
-      status.textContent = "自动校正 · 建议检查";
+      uiText(status, () => t("自动校正 \u00B7 建议检查"));
     text.append(title, status);
     open.append(text);
     top.append(label, open);
@@ -624,14 +697,25 @@ function syncPoint() {
   input("pointY").value = p ? (p.y * 100).toFixed(2) : "";
 }
 function render() {
+  refreshReports();
   renderPages();
   renderSummary();
   const photo = current(),
     index = photos.findIndex((p) => p.id === currentId);
   $("currentName").textContent = photo?.name || "四点校正";
-  $("pageMeta").textContent = photo
-    ? `第 ${index + 1} / ${photos.length} 页 · ${photo.format} · ${photo.width} × ${photo.height} px${photo.warnings.length ? " · " + photo.warnings.join("；") : ""}`
-    : "选择一张照片开始";
+  uiText($("pageMeta"), () =>
+    photo
+      ? t(
+          "第 {0} / {1} 页 \u00B7 {2} \u00B7 {3} \u00D7 {4} px{5}",
+          index + 1,
+          photos.length,
+          photo.format,
+          photo.width,
+          photo.height,
+          photo.warnings.length ? " · " + photo.warnings.join("；") : "",
+        )
+      : t("选择一张照片开始"),
+  );
   for (const id of [
     "undo",
     "autoFind",
@@ -647,38 +731,63 @@ function render() {
   $<HTMLButtonElement>("prev").disabled = busy || index <= 0;
   $<HTMLButtonElement>("next").disabled =
     busy || index < 0 || index >= photos.length - 1;
-  $("exclude").textContent = photo?.excluded ? "恢复此页" : "排除此页";
+  uiText($("exclude"), () => (photo?.excluded ? t("恢复此页") : t("排除此页")));
   input("brightness").value = String(photo?.brightness || 0);
   input("contrast").value = String(photo?.contrast || 0);
   const error = photo ? validateCorners(photo.corners) : null;
-  $("cornerPrompt").textContent = !photo
-    ? "导入后自动尝试定位画面；也可按顺序点选四角。"
-    : !photo.file
-      ? "当前页原图尚未恢复，请补传；已有选区和页序保留。"
-      : photo.corners.length < 4
-        ? `${photo.detection === "ambiguous" ? "发现多个候选画面，请手动选择。" : photo.detection === "not_found" ? "未找到可靠的完整 PPT 边界，请手动选择。" : ""}请点选第 ${photo.corners.length + 1} 个角：${names[photo.corners.length]}。`
-        : error ||
-          (photo.processed
-            ? photo.automated
-              ? "当前页已自动校正，建议检查完整内容。可微调后人工确认。"
-              : "当前页已确认。拖动控制点后需重新确认。"
-            : photo.sourceNeedsReview
-              ? "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。"
-              : photo.learnedSuggestion
-                ? "本地纠正经验给出的参考选区，请核对四角后人工确认。"
-                : photo.detection === "suggested"
-                  ? "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。"
-                  : "四角已就绪，可拖动微调，然后校正并确认。");
+  uiText($("cornerPrompt"), () =>
+    !photo
+      ? t("导入后自动尝试定位画面；也可按顺序点选四角。")
+      : !photo.file
+        ? t("当前页原图尚未恢复，请补传；已有选区和页序保留。")
+        : photo.corners.length < 4
+          ? t(
+              "{0}请点选第 {1} 个角：{2}。",
+              photo.detection === "ambiguous"
+                ? t("发现多个候选画面，请手动选择。")
+                : photo.detection === "not_found"
+                  ? t("未找到可靠的完整 PPT 边界，请手动选择。")
+                  : "",
+              photo.corners.length + 1,
+              t(names[photo.corners.length]),
+            )
+          : error ||
+            (photo.processed
+              ? photo.automated
+                ? t("当前页已自动校正，建议检查完整内容。可微调后人工确认。")
+                : t("当前页已确认。拖动控制点后需重新确认。")
+              : photo.sourceNeedsReview
+                ? t(
+                    "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。",
+                  )
+                : photo.learnedSuggestion
+                  ? t("本地纠正经验给出的参考选区，请核对四角后人工确认。")
+                  : photo.detection === "suggested"
+                    ? t(
+                        "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。",
+                      )
+                    : t("四角已就绪，可拖动微调，然后校正并确认。")),
+  );
   $("replaceSource").hidden = !!photo?.file || !photo;
   $("cancelReplacement").hidden = !replacementTargetId;
   $("cancelPhoneReplacement").hidden = !replacementTargetId;
   $("phoneReplacementNotice").hidden = !replacementTargetId;
-  $("phoneReplacementNotice").textContent = replacementTargetId
-    ? `正在为“${photos.find((p) => p.id === replacementTargetId)?.name || "当前页"}”补传：下一张手机照片将关联到此页，请只选择对应原图。`
-    : "";
-  $("replacementHint").textContent = replacementTargetId
-    ? `下一张手机传图将补到“${photos.find((p) => p.id === replacementTargetId)?.name || "当前页"}”，不会新增页面；请只传对应原图。`
-    : "当前页缺原图。补传会保留已有选区和页序。";
+  uiText($("phoneReplacementNotice"), () =>
+    replacementTargetId
+      ? t(
+          "正在为\u201C{0}\u201D补传：下一张手机照片将关联到此页，请只选择对应原图。",
+          photos.find((p) => p.id === replacementTargetId)?.name || t("当前页"),
+        )
+      : "",
+  );
+  uiText($("replacementHint"), () =>
+    replacementTargetId
+      ? t(
+          "下一张手机传图将补到\u201C{0}\u201D，不会新增页面；请只传对应原图。",
+          photos.find((p) => p.id === replacementTargetId)?.name || t("当前页"),
+        )
+      : t("当前页缺原图。补传会保留已有选区和页序。"),
+  );
   syncPoint();
   draw();
   updatePreview();
@@ -697,15 +806,27 @@ function updatePreview() {
     img.height = (showOriginal ? photo?.height : photo?.resultHeight) || 900;
   } else img.removeAttribute("src");
   $("previewEmpty").hidden = !!source;
-  $("previewEmpty").textContent =
+  uiText($("previewEmpty"), () =>
     photo && !photo.file
-      ? "重新选择原始照片后恢复预览。"
-      : "点选四个角后生成校正预览。";
-  $("previewMeta").textContent = showOriginal
-    ? "原图对比（最长边 1800 px 预览）"
-    : photo?.result
-      ? `${photo.resultWidth} × ${photo.resultHeight} px 预览${photo.processed ? (photo.automated ? " · 自动校正，建议检查" : " · 已确认") : " · 尚未确认"}`
-      : "";
+      ? t("重新选择原始照片后恢复预览。")
+      : t("点选四个角后生成校正预览。"),
+  );
+  uiText($("previewMeta"), () =>
+    showOriginal
+      ? t("原图对比（最长边 1800 px 预览）")
+      : photo?.result
+        ? t(
+            "{0} \u00D7 {1} px 预览{2}",
+            photo.resultWidth,
+            photo.resultHeight,
+            photo.processed
+              ? photo.automated
+                ? t(" \u00B7 自动校正，建议检查")
+                : t(" \u00B7 已确认")
+              : t(" \u00B7 尚未确认"),
+          )
+        : "",
+  );
 }
 async function refreshPreview(photo: Photo) {
   if (!photo.file || validateCorners(photo.corners)) return;
@@ -741,7 +862,7 @@ async function openPhoto(id: string) {
   pointer = undefined;
   drag = undefined;
   viewport.setAttribute("aria-busy", "true");
-  $("canvasEmpty").textContent = "正在准备照片…";
+  uiText($("canvasEmpty"), () => t("正在准备照片\u2026"));
   $("canvasEmpty").hidden = false;
   const token = ++displayToken;
   previewToken++;
@@ -822,7 +943,7 @@ function draw() {
   ctx.fillStyle = "#f2f2f2";
   ctx.fillRect(0, 0, cssW, cssH);
   $("canvasEmpty").hidden = !!bitmap;
-  if (!bitmap) $("canvasEmpty").textContent = "选择照片后显示原图。";
+  if (!bitmap) uiText($("canvasEmpty"), () => t("选择照片后显示原图。"));
   if (!bitmap || !photo) return;
   const ratio = Math.min(
     (cssW - 48) / bitmap.width,
@@ -1029,6 +1150,7 @@ document.addEventListener("keydown", (event) => {
     event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLSelectElement ||
     $<HTMLDialogElement>("clearDialog").open ||
+    $<HTMLDialogElement>("settingsPanel").open ||
     (!!event.target && $("phonePanel").contains(event.target as Node))
   )
     return;
@@ -1210,6 +1332,7 @@ async function importFiles(files: File[], targetId?: string) {
         warnings: [],
       };
       photo.file = file;
+      if (photo.digest !== digest) photo.reading = undefined;
       photo.digest = digest;
       if (recover) {
         photo.format = blob.type.replace("image/", "").toUpperCase();
@@ -1263,8 +1386,9 @@ async function importFiles(files: File[], targetId?: string) {
   setBusy(false);
   const missing = photos.filter((p) => !p.file).length;
   $("recovery").hidden = !missing;
-  $("recovery").textContent =
-    `还有 ${missing} 张原图需要重新选择，已有编辑参数保留。`;
+  uiText($("recovery"), () =>
+    t("还有 {0} 张原图需要重新选择，已有编辑参数保留。", missing),
+  );
   message(
     `新增 ${added} 张，恢复 ${restored} 张。${failures.length ? "\n未导入：\n" + failures.join("\n") : ""}`,
     !!failures.length,
@@ -1284,7 +1408,6 @@ async function importFiles(files: File[], targetId?: string) {
       : photos[0]?.id || "",
   );
 }
-
 $("replaceCurrent").onclick = () => {
   const photo = current();
   if (!photo || photo.file || busy) return;
@@ -1599,10 +1722,19 @@ async function generateReport() {
     const link = $<HTMLAnchorElement>("download");
     link.href = downloadUrl;
     link.download = `${name}.${format}`;
-    link.textContent = `下载 ${format.toUpperCase()} · ${bytes(blob.size)}`;
+    uiText(link, () =>
+      t("下载 {0} \u00B7 {1}", format.toUpperCase(), bytes(blob.size)),
+    );
     link.hidden = false;
-    $("downloadInfo").textContent =
-      `${name}.${format} · ${included.length} 页 · ${bytes(blob.size)}`;
+    uiText($("downloadInfo"), () =>
+      t(
+        "{0}.{1} \u00B7 {2} 页 \u00B7 {3}",
+        name,
+        format,
+        included.length,
+        bytes(blob.size),
+      ),
+    );
     $("downloadResult").hidden = false;
     message(
       `已生成 ${included.length} 页 ${format.toUpperCase()}，请点击下载并检查文件。${included.some((p) => p.automated) ? "部分页面由工具自动校正，请检查裁切是否完整。" : ""}${included.some((p) => !p.processed) ? "未确认页使用原图。" : ""}`,
@@ -1774,8 +1906,13 @@ async function init() {
       }
       const missing = photos.filter((p) => !p.file).length;
       $("recovery").hidden = !missing;
-      $("recovery").textContent =
-        `已恢复 ${photos.length} 页编辑参数，其中 ${missing} 张旧原图未缓存，请补传；已有选区和页序保留。`;
+      uiText($("recovery"), () =>
+        t(
+          "已恢复 {0} 页编辑参数，其中 {1} 张旧原图未缓存，请补传；已有选区和页序保留。",
+          photos.length,
+          missing,
+        ),
+      );
     }
   } catch {
     message(
@@ -1806,4 +1943,17 @@ const phone = phoneTransfer({
       };
     throw Error(lastImportError || "电脑未能导入此照片，请重试。");
   },
+});
+refreshReports = setupReports(
+  () => photos,
+  save,
+  () => busy,
+  setBusy,
+);
+setupSettings();
+
+document.addEventListener("languagechange", () => {
+  renderLearning();
+  render();
+  refreshReports();
 });

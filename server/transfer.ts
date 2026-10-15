@@ -241,17 +241,26 @@ export function createTransfer(
     const path = req.url?.split("?")[0];
     if (
       req.method === "GET" &&
-      (path === "/" || path === "/phone.js" || path === "/phone.css")
+      ["/", "/phone.js", "/phone.css", "/i18n.js", "/translations.js"].includes(
+        path || "",
+      )
     ) {
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'",
       );
       const file = path === "/" ? "phone.html" : path!.slice(1);
-      const data = await readFile(new URL(`./${file}`, import.meta.url));
+      const data = await readFile(
+        new URL(
+          ["i18n.js", "translations.js"].includes(file)
+            ? `../shared/${file}`
+            : `./${file}`,
+          import.meta.url,
+        ),
+      );
       res.setHeader(
         "Content-Type",
-        path === "/phone.js"
+        path?.endsWith(".js")
           ? "text/javascript; charset=utf-8"
           : path === "/phone.css"
             ? "text/css; charset=utf-8"
