@@ -1,6 +1,6 @@
 # 工程约定
 
-本项目是报告拾光（TalkCapture）的独立本地工程，不属于 Pulse 业务代码。当前范围见 `docs/usage.md`，工程结构见 `docs/development.md`，验证与后续计划见 `docs/validation.md` 和 `docs/roadmap.md`。需求源于项目所有者本地保存的 PRD V2.3；不要把需求文件的“上线版”名称当作已发布证据。
+本项目是报告拾光（TalkCapture）的独立本地工程，不属于 Pulse 业务代码。当前范围见 `docs/usage.md`，工程结构见 `docs/development.md`，文档导航见 `docs/README.md`，验证与后续计划见 `docs/validation.md` 和 `docs/roadmap.md`；真实照片实测按 `docs/acceptance.md` 记录。需求源于项目所有者本地保存的 PRD V2.3；不要把需求文件的“上线版”名称当作已发布证据。
 
 - 保持照片本地处理。用户于 2026-10-04 明确确认可试用同一局域网的手机扫码传图；仅允许显式开启、限时、经电脑批准的本机网关，范围见 PRD 第 22 节。禁止云上传、埋点、公网暴露或自动删除手机原图，除非用户另行明确确认。
 - 原图不覆盖，导出必须基于原文件；排除不删除原图。用户现已授权原图写入当前浏览器 IndexedDB 本地缓存，刷新自动恢复；编辑元数据与原图分库存储，不上传云端。清空项目同时清除本工具的缓存副本，不触碰手机或电脑原始文件。
@@ -10,7 +10,7 @@
 - 主流程为导入、核对、分报告与智能命名、按组导出；PPTX/PDF 为图片整理版，原文 Markdown 保留完整 OCR 和项目来源页号，不混入 AI 分析。分析及整项目快速导出仅为可选入口，保留人工分组与名称。
 - 修改界面前读取 `/Users/bertil/.codex/skills/pheno-design/SKILL.md` 及适用参考。
 - 使用 pnpm 锁文件，保留 `patches/pptxgenjs@4.0.1.patch`，不随意升级导出依赖。
-- 只清理本工程确切 `dist/`，不得清理项目、照片或其他工程。构建生成物和测试文件不提交。
+- 只清理本工程确切 `dist/`，不得清理项目、照片或其他工程。构建生成物和测试输出不提交，测试源码正常纳入版本管理。
 - 不提交、推送、部署或改动 Pulse，除非用户明确授权。
 
 命令：`pnpm install --frozen-lockfile` 安装；`pnpm dev` 开发；`pnpm format` 格式化；`pnpm format:check` 格式；`pnpm typecheck` 类型；`pnpm test` 单元；`pnpm test:browser` 浏览器（先 build，独立 9025/9026 端口，避免干扰用户传图）；`pnpm build` 构建；`pnpm start` 启动构建；`pnpm preview` 同 start 验证构建。电脑入口为 127.0.0.1:9015；手机网关仅按用户操作在所选私有地址的 9016 端口开启。开发和正式启动使用同一端口，不能同时运行。独立 ESLint 尚未配置。

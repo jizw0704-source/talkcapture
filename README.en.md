@@ -70,14 +70,15 @@ Pair on trusted Wi-Fi and approve the connection on the computer. No pairing ses
 - JPEG, PNG, HEIC / HEIF; up to 100 photos, 30 MB each, 1 GB total.
 - Optional phone transfer with desktop approval: one phone, up to 10 minutes.
 - Local corner suggestions, manual corners, perspective correction, rotation, brightness, and contrast; originals and manual edits are preserved.
+- Collapsible photo wall, full-image browsing, batch review, shared issues and possible-duplicate hints.
 - Reorder, exclude, and restore pages. Original files and editing metadata are cached locally and restored after refreshing once saved.
-- Local macOS Vision OCR, suggested report groups, and per-report export. No recovery of obscured content, deduplication, or editable charts.
+- Local macOS Vision OCR, suggested report groups, and per-report export. No recovery of obscured content or editable charts. Possible duplicates are suggestions; users decide which pages to keep.
 
 TalkCapture focuses on organizing source material. Deeper research, summarization, and knowledge management can continue in your own AI agent or other tools. Optional MiniMax analysis sends only the selected report’s recognized text and source-page references when explicitly invoked, never its images or other reports.
 
 ## Quick start
 
-Requirements: Node.js 24 and pnpm. Keep the existing lockfile and dependency patch.
+Requirements: Node.js 24 and pnpm. Keep the existing lockfile and dependency patch. Local OCR and automatic report grouping currently require macOS Vision and Swift command-line tools; this recognition path is not implemented for other systems. MiniMax analysis is optional; basic organizing and export do not require an API key.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -92,17 +93,22 @@ Open <http://127.0.0.1:9015/?auto-crop=1>. The interface supports 中文 and Eng
 3. Continue to Group reports. Local text recognition suggests report boundaries and names; check the groups and edit, split or merge them as needed.
 4. Export each selected report as image-based PPTX, PDF or source Markdown. Content analysis is available through a separate optional entry. Whole-project quick export remains an optional shortcut.
 
+Each group shows a representative thumbnail. Page text and secondary actions expand on demand. Settings presents language, theme and text size before collapsed model configuration.
+
 ## Documentation
 
-| Document                                          | Contents                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [English user guide](docs/usage.en.md)            | Manual and batch workflows, phone pairing, recovery, image quality, and limits |
-| [Bilingual introduction](docs/introduction.md)    | Reusable Chinese and English descriptions and confirmed product naming         |
-| [Chinese user guide](docs/usage.md)               | Detailed current product behavior                                              |
-| [Engineering guide, Chinese](docs/development.md) | Module map, processing paths, dependency patch, and local services             |
-| [Validation record, Chinese](docs/validation.md)  | Development checks and acceptance boundaries                                   |
-| [Roadmap, Chinese](docs/roadmap.md)               | Real photo, phone, large-image, and compatibility acceptance tasks             |
-| [Engineering agreements, Chinese](AGENTS.md)      | Maintenance and data-protection rules                                          |
+| Document                                            | Contents                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Documentation index, Chinese](docs/README.md)      | Current document responsibilities and source map                               |
+| [Changelog](CHANGELOG.md)                           | Recent refinements and corresponding commits                                   |
+| [Acceptance checklist, Chinese](docs/acceptance.md) | Next real-phone, multi-report and export trial                                 |
+| [English user guide](docs/usage.en.md)              | Manual and batch workflows, phone pairing, recovery, image quality, and limits |
+| [Bilingual introduction](docs/introduction.md)      | Reusable Chinese and English descriptions and confirmed product naming         |
+| [Chinese user guide](docs/usage.md)                 | Detailed current product behavior                                              |
+| [Engineering guide, Chinese](docs/development.md)   | Module map, processing paths, dependency patch, and local services             |
+| [Validation record, Chinese](docs/validation.md)    | Development checks and acceptance boundaries                                   |
+| [Roadmap, Chinese](docs/roadmap.md)                 | Real photo, phone, large-image, and compatibility acceptance tasks             |
+| [Engineering agreements, Chinese](AGENTS.md)        | Maintenance and data-protection rules                                          |
 
 ## Development checks
 

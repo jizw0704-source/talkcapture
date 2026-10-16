@@ -100,5 +100,5 @@ test("预览失败不会丢掉已上传原图，打开待核对页可重试", as
   await expect(page.locator("#cacheStatus")).toContainText("已保存 1 / 1");
   await expect(page.locator("#counts")).toContainText("1 张照片 · 0 页已确认");
   await expect(page.locator("#previewImage")).toBeVisible();
-  await expect(page.locator("#previewMeta")).toContainText("尚未确认");
+  await expect(page.locator("#previewMeta")).toContainText("待核对");
 });

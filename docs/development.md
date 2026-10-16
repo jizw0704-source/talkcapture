@@ -2,7 +2,7 @@
 
 ## 运行与技术栈
 
-项目是独立本地工具，前端使用 TypeScript、Vite、Canvas 和浏览器 Worker；Node.js 24 提供本地静态服务与可选手机传图网关。图片处理使用 exifr、heic-to，文件生成使用 PptxGenJS 和 jsPDF，二维码由 qrcode 在本机生成。没有云端识别、模型下载或分析埋点。
+项目是独立本地工具，前端使用 TypeScript、Vite、Canvas 和浏览器 Worker；Node.js 24 提供本地静态服务与可选手机传图网关。图片处理使用 exifr、heic-to，文件生成使用 PptxGenJS 和 jsPDF，二维码由 qrcode 在本机生成。文字识别使用本机 macOS Vision；可选 MiniMax 解读是显式调用的云端文字分析。应用不下载本地模型，也没有分析埋点。
 
 使用 pnpm 和仓库内的 `pnpm-lock.yaml`、`pnpm-workspace.yaml`；具体安装、启动、格式、类型、测试和构建命令见 [README](../README.md#开发检查)。不随意升级依赖或切换包管理器。
 
@@ -27,9 +27,26 @@
 | `patches/`                                | 保持 PPTX 文件结构完整的依赖补丁               |
 | `docs/`                                   | 产品范围、维护说明、验证记录和下一阶段验收     |
 
-## 两条操作路径
+### 新增模块导航
 
-逐页路径：导入原图 → 自动建议或手动四角 → 校正并确认 → 调整页序 → 导出 PPTX / PDF。普通导入不会自动确认或自动导出。手动导出未确认页面时，必须由用户明确选择按原图输出。
+| 模块                                                             | 职责                                   |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| `src/region-detection.ts`、`src/suggestions.ts`                  | 区域候选及找角建议选择                 |
+| `src/import-gallery.ts`                                          | 照片墙、大图浏览与返回核对             |
+| `src/batch-review.ts`、`src/duplicates.ts`                       | 批量核对和本地疑似重复候选             |
+| `src/photo-status.ts`、`src/review-issues.ts`                    | 共用页状态和问题收集                   |
+| `src/report-ui.ts`、`src/reports.ts`、`src/grouping-evidence.ts` | 分组界面、报告边界线索和原文 Markdown  |
+| `src/naming.ts`、`src/report-name.ts`                            | 文件命名与跨入口报告名称同步           |
+| `src/recovery.ts`、`src/learning.ts`                             | 补传匹配、本机人工纠正经验             |
+| `src/settings.ts`、`shared/`                                     | 设置面板、显示偏好与中英文界面         |
+| `server/analysis.ts`、`server/native/recognize.swift`            | 本机 OCR 接口与 macOS Vision           |
+| `server/minimax.ts`、`server/citations.ts`                       | 可选文字解读与来源页引用校验           |
+| `server/settings.ts`、`server/model-config.ts`                   | 电脑端模型设置及密钥读写               |
+| `validation/corners.html`、`src/corner-benchmark.ts`             | 本地找角对比工具，不替代真实准确率验收 |
+
+## 主流程与可选批量路径
+
+主流程：手机或电脑导入 → 全部照片自动建议四角和预览 → 人工核对 → 本机 OCR 建议分报告与命名 → 核对分界 → 按组导出 PPTX / PDF / 原文 Markdown。普通导入不会自动确认或自动导出。手动导出未确认页面时，必须由用户明确选择按原图输出。
 
 批量路径：用户点击自动整理 → 按当前页序处理保留页面 → 沿用已有四角和人工参数 → 没有四角才尝试定位 → 几何校验 → 逐页校正 → 全部保留页就绪后生成 PPTX。
 
@@ -55,7 +72,7 @@
 
 `core-js` 的可选安装后脚本在工作区配置中禁用。新增生产依赖必须确有需要，并记录原因。
 
-浏览器测试复用 9015 上的现有服务，因此验证构建产物时先构建、启动，再运行测试。无私有 IPv4 网卡时手机测试可能跳过，必须如实记录。图像和导出检查文件保存在被忽略的 `test-results/`，不提交到仓库。
+浏览器测试使用独立的 9025/9026 构建服务；先构建，再运行测试，不另行启动或复用 9015。无私有 IPv4 网卡时手机测试可能跳过，必须如实记录。图像和导出检查文件保存在被忽略的 `test-results/`，不提交到仓库。
 
 ## 仓库维护
 
@@ -83,7 +100,7 @@
 
 复制 .env.example 为 .env.local 并配置 MINIMAX_API_KEY；配置每次请求读取，环境变量优先。默认模型 MiniMax-M2.5，默认官方国内地址 https://api.minimax.cn/v1，也允许官方 api.minimaxi.com 与国际 api.minimax.io。禁止任意代理地址和 HTTP 重定向，避免密钥外传。不返回上游错误正文，不记录密钥或提示词，不自动重试付费请求。
 
-Qwen3/Ollama 的用户级服务已停用并移出 LaunchAgents；本机原模型文件保留，应用无 Ollama 回退。模型调用错误时仍可下载本地摘录。无需新增生产依赖。
+应用不依赖 Qwen3/Ollama，也没有 Ollama 回退；不要把某台开发机曾停用的服务状态作为仓库安装步骤。模型调用错误时仍可下载本地摘录。无需新增生产依赖。
 
 ## 页面设置
 
