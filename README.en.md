@@ -129,3 +129,7 @@ The repository contains source, tests, documentation, lockfiles, and the depende
 The Settings panel configures the MiniMax model and server-side API key, tests saved credentials using a fixed message, and provides light/dark/system themes, three text sizes, app version and build time. Existing keys are never returned to the page. Display preferences stay in the current browser.
 
 The primary workflow is Import → Review → Group and name reports → Export by report. Source Markdown preserves full page text and original page references without AI analysis. MiniMax analysis and whole-project quick export are optional.
+
+## License
+
+This project is released under the [MIT License](LICENSE), copyright **pheno**. Use, modification, distribution, and commercial use are permitted with the copyright and license notice retained. The software is provided as is, without warranty. Third-party dependencies retain their own licenses; uploaded reports and photos remain subject to their respective rights holders.
