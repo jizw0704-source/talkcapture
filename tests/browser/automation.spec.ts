@@ -283,10 +283,13 @@ test("自动入口和待检查列表支持窄屏、键盘及高对比模式", as
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  expect(
-    (await page.locator("#automaticIssues button").first().boundingBox())
-      ?.height,
-  ).toBeGreaterThanOrEqual(44);
+  await expect
+    .poll(
+      async () =>
+        (await page.locator("#automaticIssues button").first().boundingBox())
+          ?.height ?? 0,
+    )
+    .toBeGreaterThanOrEqual(44);
   await page.screenshot({
     path: info.outputPath("batch-mobile.png"),
     fullPage: true,

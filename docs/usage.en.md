@@ -95,3 +95,11 @@ Confirming manually adjusted corners stores up to 30 local framing examples, inc
 Detection now combines edge lines with local brightness/color regions and fits visible long boundaries. Region-only or conflicting suggestions require manual confirmation; confirmed crops remain untouched. Multiple separate screens stay uncertain. A single outward region leak does not displace an otherwise matching edge candidate. This is geometry/region analysis, not semantic slide recognition or color enhancement.
 
 Open `/validation/corners.html` in the same browser and origin after saving finishes. It reads cached originals and confirmed crops without writing project data. Old edge detection and current fusion are compared without correction examples. Both analyze a longest edge of 640 px; region segmentation uses up to 360 px. Downloaded JSON contains local metrics, not photos. Approximate region IoU and normalized corner error measure agreement with the confirmed reference, not general accuracy. Independent photo batches remain necessary for acceptance.
+
+## Batch overview and possible duplicates
+
+Expand “Batch review overview” in Review. Filter included pages, pages needing review, possible duplicates or excluded pages. Opening a thumbnail uses the existing editor. The overview generates small previews from existing corners without confirming, reordering or replacing crops. Missing crops use explicitly labeled original previews; export still uses originals.
+
+Local comparison checks normalized grayscale previews and aspect ratios. Blank/low-information frames and missing previews are not duplicate evidence. Camera changes, occlusion, color differences and small content changes may produce missed or false suggestions. Compare full content before choosing, especially slides with progressively revealed information.
+
+Compare two suggested pages, explicitly keep one and exclude the other, or keep both and dismiss that pair for this session. Excluding only removes a page from output; originals, confirmed corners and confirmation state remain. Restore excluded pages through the overview or page list. Exclusions persist with the project, while dismissed pairs are session-only. No page is automatically excluded or deleted.

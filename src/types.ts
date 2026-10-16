@@ -51,7 +51,7 @@ export type ProcessRequest = {
   maxEdge: number;
   brightness: number;
   contrast: number;
-  kind: "warp" | "plain" | "detect" | "compare";
+  kind: "warp" | "thumbnail" | "plain" | "detect" | "compare";
   examples?: import("./learning").Correction[];
 };
 export type ProcessResult = {

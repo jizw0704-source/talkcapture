@@ -1,6 +1,8 @@
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
 import { setupSettings } from "./settings";
 import { setupReports } from "./report-ui";
+import { setupBatchReview } from "./batch-review";
+let renderBatch = () => {};
 import { reportGroups, reportSourceMarkdown, groupName } from "./reports";
 let refreshReports = () => {};
 let prepareReports = async () => {};
@@ -182,6 +184,11 @@ function showStage(next: Stage, focus = true) {
 for (const name of ["import", "review", "groups", "export"] as const)
   $(`step${name[0].toUpperCase()}${name.slice(1)}`).onclick = () =>
     showStage(name);
+uiAttr($("brandHome"), "aria-label", () => t("返回导入照片"));
+$("brandHome").onclick = (event) => {
+  event.preventDefault();
+  showStage("import");
+};
 $("addMore").onclick = () => showStage("import");
 $("continueReview").onclick = () => showStage("review");
 $("goExport").onclick = () => showStage("groups");
@@ -669,6 +676,7 @@ function renderSummary() {
     select("aspect").value === "wide" ? "16 / 9" : "4 / 3";
 }
 function renderPages() {
+  renderBatch();
   const list = $("pageList");
   list.replaceChildren();
   if (!photos.length) {
@@ -949,6 +957,7 @@ async function refreshPreview(photo: Photo) {
     photo.resultWidth = result.width;
     photo.resultHeight = result.height;
     if (photo.id === currentId) updatePreview();
+    renderBatch();
     return true;
   } catch (error) {
     if (token === previewToken) {
@@ -2199,6 +2208,20 @@ const reportsUI = setupReports(
 );
 refreshReports = reportsUI;
 prepareReports = reportsUI.prepare;
+renderBatch = setupBatchReview(
+  () => photos,
+  () => busy,
+  (id) =>
+    void openPhoto(id).then(() => {
+      const heading = $("currentName");
+      heading.tabIndex = -1;
+      heading.focus();
+    }),
+  () => {
+    save();
+    render();
+  },
+);
 setupSettings();
 
 document.addEventListener("languagechange", () => {

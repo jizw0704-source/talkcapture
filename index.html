@@ -29,7 +29,13 @@
   <body data-stage="import" data-empty="true">
     <a class="skip-link" href="#mainContent">跳到主要内容</a>
     <header>
-      <div class="brand" translate="no">
+      <a
+        id="brandHome"
+        class="brand"
+        href="#importScreen"
+        translate="no"
+        aria-label="返回导入照片"
+      >
         <img
           class="brand-mark"
           src="/brand/talkcapture-mark.svg"
@@ -50,7 +56,7 @@
             height="17"
           />
         </div>
-      </div>
+      </a>
       <nav class="steps" aria-label="整理步骤">
         <button
           id="stepImport"
@@ -283,6 +289,28 @@
         <details id="importReview" class="settings" hidden>
           <summary id="importReviewSummary">边界待核对</summary>
           <div id="importReviewList" class="issue-list"></div>
+        </details>
+        <details id="batchOverview" class="settings batch-overview">
+          <summary>批量核对总览</summary>
+          <div class="toolbar">
+            <label
+              >查看页面
+              <select id="batchFilter">
+                <option value="all">全部保留页</option>
+                <option value="issues">需要核对</option>
+                <option value="duplicates">疑似重复</option>
+                <option value="excluded">已排除</option>
+              </select>
+            </label>
+          </div>
+          <p id="duplicateStatus" class="hint" role="status"></p>
+          <section
+            id="duplicateComparison"
+            class="duplicate-comparison"
+            aria-label="疑似重复页对比"
+            hidden
+          ></section>
+          <div id="batchGrid" class="batch-grid"></div>
         </details>
         <div class="workspace">
           <aside class="pages" aria-label="照片页序">

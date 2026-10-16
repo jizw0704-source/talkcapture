@@ -1,4 +1,31 @@
 export const english = {
+  返回导入照片: "Return to photo import",
+  "还有 {0} 页相似，可在疑似重复筛选中查看。":
+    "{0} more similar pages are available in the possible duplicates filter.",
+  已排除: "Excluded",
+  原图缺失: "Original missing",
+  批量核对总览: "Batch review overview",
+  查看页面: "Show pages",
+  全部保留页: "All included pages",
+  需要核对: "Needs review",
+  疑似重复: "Possible duplicates",
+  "当前筛选下没有页面。": "No pages match this filter.",
+  "核对第 {0} 页": "Review page {0}",
+  预览尚未就绪: "Preview not ready",
+  "原图预览 · 尚无校正预览": "Original preview · corrected preview unavailable",
+  "与第 {0} 页并排比较": "Compare with page {0}",
+  疑似重复页对比: "Compare possible duplicate pages",
+  "相似不代表重复，逐步出现的文字或图表可能不同。保留操作只排除另一页，不删除原图或确认选区。":
+    "Similarity does not prove duplication: text or charts may appear progressively. Keeping one only excludes the other from export; originals and confirmed crops remain.",
+  打开此页核对: "Open page for review",
+  "保留第 {0} 页，排除第 {1} 页": "Keep page {0}, exclude page {1}",
+  "保留两页，本次不再提示": "Keep both; dismiss for this session",
+  关闭对比: "Close comparison",
+  "正在本机检查相似页面…": "Checking similar pages locally…",
+  "发现 {0} 对疑似重复；仅提示，不自动排除。{1}":
+    "Found {0} possible duplicate pairs. Suggestions only; no automatic exclusions.{1}",
+  " {0} 页缺少可用预览，暂未参与相似检查。":
+    " {0} pages have no usable preview and were not compared.",
   整理成可用资料: "into useful files",
   "自动校正、分报告，导出 PPT、PDF 或原文 Markdown。":
     "Correct photos, group reports, and export PPT, PDF or source Markdown.",
