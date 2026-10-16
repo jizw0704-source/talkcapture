@@ -138,3 +138,99 @@ test("real native OCR reads a synthetic slide without cloud services", async ({
     "Solar cell efficiency",
   );
 });
+
+test("封面和机构变化建议拆组，重试及刷新保留人工分界与选区", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("#demo").click();
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
+  const snapshot = () =>
+    page.evaluate(
+      () =>
+        new Promise<any>((resolve) => {
+          const r = indexedDB.open("report-photo-organizer", 2);
+          r.onsuccess = () => {
+            const db = r.result,
+              tx = db.transaction("project"),
+              q = tx.objectStore("project").get("current");
+            tx.oncomplete = () => {
+              db.close();
+              resolve(
+                q.result.photos.map((p: any) => ({
+                  id: p.id,
+                  corners: p.corners,
+                  processed: p.processed,
+                  excluded: p.excluded,
+                })),
+              );
+            };
+          };
+        }),
+    );
+  const before = await snapshot();
+  let calls = 0;
+  await page.route("**/api/analysis/ocr", (route) =>
+    route.fulfill({
+      json: {
+        lines: (calls++ === 0
+          ? ["ALPHA ENERGY", "轨道控制理论与算法研究", "数学模型与实验结果"]
+          : calls === 2
+            ? [
+                "太阳电池组件测试关键问题与解决方案",
+                "示例电能科技有限公司",
+                "李明",
+              ]
+            : ["BETA ENERGY", "太阳电池组件测试与应用研究", "测试结果与分析"]
+        ).map((text, i) => ({
+          text,
+          confidence: 0.95,
+          y: i === 0 ? 0.05 : 0.4 + i * 0.1,
+          x: 0.1,
+          width: 0.6,
+          height: 0.03,
+        })),
+      },
+    }),
+  );
+  await page.locator("#stepGroups").click();
+  await page.locator("#analyzeReports").click();
+  await expect(page.locator("#reportStatus")).toContainText("已整理为 3 组");
+  await expect(page.locator(".report-group")).toHaveCount(3);
+  await expect(page.locator("#reportList")).toContainText("分界线索：");
+  expect(await snapshot()).toEqual(before);
+  await page
+    .locator(".report-group")
+    .nth(2)
+    .getByRole("button", { name: "合并到上一报告" })
+    .click();
+  await expect(page.locator(".report-group")).toHaveCount(2);
+  const names = await page
+    .locator(".report-group input")
+    .evaluateAll((nodes) => nodes.map((n) => (n as HTMLInputElement).value));
+  await page.locator("#analyzeReports").click();
+  await expect(page.locator("#reportStatus")).toContainText("已整理为 2 组");
+  expect(calls).toBe(3);
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
+  expect(await snapshot()).toEqual(before);
+  await page.reload();
+  await page.locator("#stepGroups").click();
+  await expect(page.locator(".report-group")).toHaveCount(2);
+  expect(
+    await page
+      .locator(".report-group input")
+      .evaluateAll((nodes) => nodes.map((n) => (n as HTMLInputElement).value)),
+  ).toEqual(names);
+  await page.locator("#settingsOpen").click();
+  await page.locator("#languageChoice").selectOption("en");
+  await page.locator("#settingsClose").click();
+  await expect(page.locator("#reportList")).toContainText("Boundary evidence:");
+  await expect(page.locator("#reportList")).not.toContainText("待核对");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  expect(await snapshot()).toEqual(before);
+});

@@ -1,6 +1,7 @@
 import { t, uiText, uiAttr } from "../shared/i18n.js";
 import { processImage } from "./processor";
 import { validateCorners } from "./geometry";
+import { readTemplate, type ReadingLine } from "./grouping-evidence";
 import type { Photo } from "./types";
 import {
   suggestGroups,
@@ -67,6 +68,7 @@ export function setupReports(
         p.processed,
         p.reading,
         p.readingError,
+        p.groupingReason,
       ]),
     ]);
     if (view === lastView) return;
@@ -118,6 +120,12 @@ export function setupReports(
         ),
       );
       section.append(sourcePages);
+      if (pages[0].groupingReason) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        uiText(hint, () => t("分界线索：{0}", t(pages[0].groupingReason!)));
+        section.append(hint);
+      }
       const actions = document.createElement("div");
       actions.className = "report-actions";
       actions.append(
@@ -159,6 +167,7 @@ export function setupReports(
             ];
             for (const p of pages) {
               p.reportId = previous[0];
+              p.groupingReason = undefined;
               p.reportTitle =
                 previous[1][0].reportTitle || titleOf(previous[1][0]);
             }
@@ -193,6 +202,7 @@ export function setupReports(
         select.value = id;
         select.onchange = () => {
           p.reportId = select.value;
+          p.groupingReason = undefined;
           p.reportTitle = grouped.get(select.value)?.[0].reportTitle;
           changed();
           render();
@@ -204,6 +214,8 @@ export function setupReports(
             for (const next of pages.slice(pages.indexOf(p))) {
               next.reportId = p.id;
               next.reportTitle = titleOf(p);
+              next.groupingReason =
+                next === p ? "人工确认的报告分界" : undefined;
             }
             changed();
             render();
@@ -291,26 +303,36 @@ export function setupReports(
         const p = photos[i];
         if (controller.signal.aborted) throw Error("已取消；已识别内容保留。");
         setStatus(`本机识别 ${i + 1} / ${photos.length}：${p.name}`);
-        if (p.reading?.digest === sourceKey(p) && p.reading?.text) continue;
+        const cached = p.reading?.digest === sourceKey(p) && !!p.reading?.text;
+        if (cached && p.reading?.template) continue;
         if (!p.file) {
           failed++;
           continue;
         }
         try {
-          const source =
-            p.corners.length === 4 && !validateCorners(p.corners)
-              ? (
-                  await processImage({
-                    blob: p.file,
-                    rotation: p.rotation,
-                    corners: p.corners,
-                    maxEdge: 2600,
-                    brightness: 0,
-                    contrast: 0,
-                    kind: "warp",
-                  })
-                ).blob
-              : p.file;
+          const corrected =
+            p.corners.length === 4 && !validateCorners(p.corners);
+          const source = corrected
+            ? (
+                await processImage({
+                  blob: p.file,
+                  rotation: p.rotation,
+                  corners: p.corners,
+                  maxEdge: 2600,
+                  brightness: 0,
+                  contrast: 0,
+                  kind: "warp",
+                })
+              ).blob
+            : p.file;
+          const template = corrected
+            ? await readTemplate(source).catch(() => undefined)
+            : undefined;
+          if (cached && p.reading) {
+            p.reading.template = template;
+            changed();
+            continue;
+          }
           const response = await fetch("/api/analysis/ocr", {
             method: "POST",
             body: source,
@@ -318,16 +340,15 @@ export function setupReports(
           });
           const result = await response.json();
           if (!response.ok) throw Error(result.error);
-          const lines = result.lines as {
-            text: string;
-            confidence: number;
-          }[];
+          const lines = result.lines as ReadingLine[];
           p.reading = {
             text: lines.map((l) => l.text).join("\n"),
             confidence: lines.length
               ? lines.reduce((s, l) => s + l.confidence, 0) / lines.length
               : 0,
             digest: sourceKey(p),
+            lines,
+            template,
           };
           p.readingError = p.reading.text
             ? undefined
@@ -353,6 +374,7 @@ export function setupReports(
         }
         if (suggestion.start || !active) active = p.id;
         p.reportId = active;
+        p.groupingReason = suggestion.start ? suggestion.reason : undefined;
       }
       for (const [id, pages] of groups()) {
         const name =

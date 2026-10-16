@@ -1,4 +1,15 @@
 export const english = {
+  "分界线索：{0}": "Boundary evidence: {0}",
+  "发现报告人变化，待核对": "Presenter changed; please review",
+  "页眉或页脚机构标识变化，待核对":
+    "Organization mark changed in header or footer; please review",
+  "发现新报告封面，待核对": "Possible new report cover; please review",
+  "版式与内容线索变化，待核对":
+    "Template and content clues changed; please review",
+  "报告信息或拍摄间隔与主题变化，待核对":
+    "Report information or capture interval and topic changed; please review",
+  人工确认的报告分界: "Manually confirmed report boundary",
+  起始页: "First page",
   返回导入照片: "Return to photo import",
   "还有 {0} 页相似，可在疑似重复筛选中查看。":
     "{0} more similar pages are available in the possible duplicates filter.",

@@ -1,4 +1,9 @@
 import type { Photo } from "./types.ts";
+import {
+  groupingEvidence,
+  sameInstitution,
+  layoutDistance,
+} from "./grouping-evidence.ts";
 export function tokens(text: string): Set<string> {
   const words =
     text.toLowerCase().match(/[a-z]{3,}|[\u4e00-\u9fff]{2,}/g) || [];
@@ -17,6 +22,42 @@ export function similarity(a: string, b: string) {
     ? [...x].filter((t) => y.has(t)).length / Math.min(x.size, y.size)
     : 0;
 }
+// OCR often drops punctuation or puts a presenter's name on the next line.
+// Only accept a label at the start of a line, not a mention inside body prose.
+export function presenter(text: string) {
+  const lines = text
+    .normalize("NFKC")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const label =
+    /^(?:报告人|报告者|主讲人|主讲|演讲者|演讲人|汇报人|汇报者|讲者|presented\s+by|presenter|speaker|reporter)\s*(?:[:：﹕]\s*|\s+|$)/i;
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(label);
+    if (!match) continue;
+    const name = (lines[i].slice(match[0].length).trim() || lines[i + 1] || "")
+      .split(/[；;，,|｜]/)[0]
+      .trim();
+    // Unpunctuated English headings such as "Speaker recognition" are body
+    // topics, not a reliable presenter label. Keep those attached to the report.
+    if (
+      /^[a-z]/i.test(match[0]) &&
+      !/[:：﹕]/.test(match[0]) &&
+      /^[a-z]/.test(name)
+    )
+      continue;
+    if (
+      name.length >= 2 &&
+      name.length <= 40 &&
+      !label.test(name) &&
+      !/^https?:|@|\d+$/i.test(name)
+    )
+      return name;
+  }
+  return "";
+}
+const presenterKey = (name: string) =>
+  name.toLowerCase().replace(/[\s.·•]/g, "");
 export function titleOf(photo: Photo) {
   return (
     photo.reading?.text
@@ -27,6 +68,7 @@ export function titleOf(photo: Photo) {
           s.length >= 4 &&
           s.length <= 100 &&
           !/^\d+$/.test(s) &&
+          !presenter(s) &&
           !/^(报告人|主讲人|演讲者|汇报人|presented by|speaker)\s*[:：]/i.test(
             s,
           ),
@@ -37,32 +79,54 @@ export function suggestGroups(photos: Photo[]) {
   let id = "",
     prior: Photo | undefined,
     lastSpeaker = "";
+  let lastInstitutions: string[] = [];
   return photos.map((photo, i) => {
     const text = photo.reading?.text || "";
-    const cover =
-      /(报告人|主讲人|演讲者|汇报人|presented by|speaker\s*:)/i.test(text);
-    const speaker = (value: string) =>
-      value
-        .match(
-          /(?:报告人|主讲人|演讲者|汇报人|presented by|speaker)\s*[:：]\s*([^\n；;，,]{2,40})/i,
-        )?.[1]
-        ?.trim();
-    const newSpeaker = speaker(text);
+    const evidence = groupingEvidence(photo);
+    const priorEvidence = prior ? groupingEvidence(prior) : undefined;
+    const sameBrand = evidence.institutions.some((a) =>
+      lastInstitutions.some((b) => sameInstitution(a, b)),
+    );
+    const brandChanged =
+      evidence.institutions.length > 0 &&
+      lastInstitutions.length > 0 &&
+      !sameBrand;
+    const styleChanged =
+      layoutDistance(prior?.reading?.template, photo.reading?.template) > 0.16;
+    const newSpeaker = presenter(text);
+    const cover = Boolean(newSpeaker);
     const oldSpeaker = lastSpeaker;
     if (newSpeaker) lastSpeaker = newSpeaker;
     const speakerChanged =
-      !!newSpeaker && !!oldSpeaker && newSpeaker !== oldSpeaker;
+      !!newSpeaker &&
+      !!oldSpeaker &&
+      presenterKey(newSpeaker) !== presenterKey(oldSpeaker);
     const gap =
       prior?.captured && photo.captured ? photo.captured - prior.captured : 0;
     const different = prior
-      ? similarity(prior.reading?.text || "", text) < 0.12
+      ? similarity(priorEvidence?.content || "", evidence.content) < 0.12
       : false;
     // Conservative suggestions only; never use missing OCR or time alone as a topic boundary.
     const start =
       i === 0 ||
       speakerChanged ||
-      (text.length > 20 && different && (cover || gap > 25 * 60 * 1000));
-    if (start) id = photo.id;
+      brandChanged ||
+      (evidence.cover && !sameBrand && (different || styleChanged)) ||
+      (styleChanged &&
+        different &&
+        evidence.institutions.length > 0 &&
+        !sameBrand) ||
+      (cover && !oldSpeaker && text.length > 20 && different) ||
+      (!newSpeaker && text.length > 20 && different && gap > 25 * 60 * 1000);
+    if (start) {
+      id = photo.id;
+      lastSpeaker = newSpeaker;
+      lastInstitutions = evidence.institutions;
+    } else if (evidence.institutions.length) {
+      lastInstitutions = [
+        ...new Set([...lastInstitutions, ...evidence.institutions]),
+      ].slice(-12);
+    }
     prior = photo;
     return {
       photo,
@@ -72,9 +136,15 @@ export function suggestGroups(photos: Photo[]) {
         i === 0
           ? "起始页"
           : start
-            ? cover
-              ? "发现新的报告人信息，主题变化，待核对"
-              : "拍摄间隔较长且主题变化，待核对"
+            ? speakerChanged
+              ? "发现报告人变化，待核对"
+              : brandChanged
+                ? "页眉或页脚机构标识变化，待核对"
+                : evidence.cover
+                  ? "发现新报告封面，待核对"
+                  : styleChanged
+                    ? "版式与内容线索变化，待核对"
+                    : "报告信息或拍摄间隔与主题变化，待核对"
             : "沿用前一报告；请核对边界",
     };
   });
@@ -99,15 +169,9 @@ export function reportMarkdown(title: string, photos: Photo[], all: Photo[]) {
 }
 
 export function speakerOf(photos: Photo[]) {
-  for (const p of photos) {
-    const speaker = p.reading?.text
-      .match(
-        /(?:报告人|主讲人|演讲者|汇报人|presented by|speaker)\s*[:：]\s*([^\n；;，,]{2,40})/i,
-      )?.[1]
-      ?.trim();
-    if (speaker) return speaker;
-  }
-  return "";
+  return (
+    photos.map((p) => presenter(p.reading?.text || "")).find(Boolean) || ""
+  );
 }
 export function groupName(photos: Photo[]) {
   const title = photos.map(titleOf).find(Boolean) || "未命名报告";

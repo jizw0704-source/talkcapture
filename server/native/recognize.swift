@@ -10,7 +10,7 @@ do {
   try VNImageRequestHandler(url: url).perform([request])
   let lines = (request.results ?? []).compactMap { observation -> [String: Any]? in
     guard let text = observation.topCandidates(1).first else { return nil }
-    return ["text": text.string, "confidence": text.confidence, "y": Double(1-observation.boundingBox.midY)]
+    return ["text": text.string, "confidence": text.confidence, "y": Double(1-observation.boundingBox.midY), "x": Double(observation.boundingBox.minX), "width": Double(observation.boundingBox.width), "height": Double(observation.boundingBox.height)]
   }.sorted { ($0["y"] as! Double) < ($1["y"] as! Double) }
   let data = try JSONSerialization.data(withJSONObject: lines)
   FileHandle.standardOutput.write(data)

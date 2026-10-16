@@ -21,7 +21,14 @@ export type Photo = {
   detection?: SlideDetection["status"];
   learnedSuggestion?: boolean;
   digest?: string;
-  reading?: { text: string; confidence: number; digest: string };
+  reading?: {
+    text: string;
+    confidence: number;
+    digest: string;
+    lines?: import("./grouping-evidence").ReadingLine[];
+    template?: number[];
+  };
+  groupingReason?: string;
   readingError?: string;
   reportId?: string;
   reportTitle?: string;
