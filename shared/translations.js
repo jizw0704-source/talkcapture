@@ -1,4 +1,13 @@
 export const english = {
+  更多操作: "More actions",
+  "逐页识别文字 · 待补充": "Page text · missing",
+  首张校正预览: "First page · corrected",
+  首张原图预览: "First page · original",
+  预览暂不可用: "Preview unavailable",
+  "报告 {0} 的首张照片": "First photo of report {0}",
+  核对分组: "Review grouping",
+  逐页识别文字: "Page text",
+  模型配置: "Model configuration",
   核对与问题: "Review and issues",
   "核对与问题 · {0} 页需处理": "Review and issues · {0} pages need attention",
   "核对与问题 · 当前无异常": "Review and issues · no current errors",

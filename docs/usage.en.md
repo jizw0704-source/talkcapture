@@ -127,3 +127,9 @@ Review and issues is shared across all four steps. Missing originals, preview fa
 Group and export screens share report titles and suggestion logic. An explicit rename updates the report and invalidates an old generated download, which must be regenerated. Blank edits retain the existing title. The whole-project filename remains separate. Browsing does not rename or regroup anything.
 
 Export this report and Export source Markdown both open the same export screen; the latter preselects Markdown. Review the scope, name and relevant warnings, generate the file, then download. Optional MiniMax analysis remains separate from source exports.
+
+## Compact group overview
+
+Each report shows its first photo as a representative thumbnail, labeled as a corrected or original preview, with an unavailable state when needed. Names, page counts and source pages remain visible. Review grouping expands page assignments and splitting controls; page text opens separately. More actions contains name suggestions, merging into the previous report and optional content analysis. Report and source Markdown export shortcuts remain available.
+
+Settings presents language, theme and text size first. Model configuration starts collapsed; expand it to configure or test MiniMax. Existing transmission and key-storage boundaries remain. Browsing and disclosures do not change photos, groups, titles, ordering, crops or confirmation states.

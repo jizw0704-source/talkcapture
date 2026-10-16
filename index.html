@@ -677,8 +677,31 @@
         <h2 id="settingsTitle">设置</h2>
         <button id="settingsClose" autofocus>关闭</button>
       </div>
-      <section class="settings-section" aria-labelledby="modelSettingsTitle">
-        <h3 id="modelSettingsTitle">模型</h3>
+      <section class="settings-section" aria-labelledby="displaySettingsTitle">
+        <h3 id="displaySettingsTitle">显示</h3>
+        <label
+          >语言 / Language<select id="languageChoice" data-language-choice>
+            <option value="zh" lang="zh-CN">中文</option>
+            <option value="en" lang="en">English</option>
+          </select></label
+        >
+        <label
+          >主题<select id="themeChoice">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+          </select></label
+        >
+        <label
+          >字体大小<select id="fontChoice">
+            <option value="standard">标准</option>
+            <option value="large">大</option>
+            <option value="larger">更大</option>
+          </select></label
+        >
+      </section>
+      <details id="modelSettings" class="settings-section">
+        <summary id="modelSettingsTitle">模型配置</summary>
         <p class="hint">
           MiniMax
           云端解读仅发送选中报告的识别文字和页码，不发送原图。调用可能计费。
@@ -720,30 +743,7 @@
           role="status"
           aria-live="polite"
         ></p>
-      </section>
-      <section class="settings-section" aria-labelledby="displaySettingsTitle">
-        <h3 id="displaySettingsTitle">显示</h3>
-        <label
-          >语言 / Language<select id="languageChoice" data-language-choice>
-            <option value="zh" lang="zh-CN">中文</option>
-            <option value="en" lang="en">English</option>
-          </select></label
-        >
-        <label
-          >主题<select id="themeChoice">
-            <option value="system">跟随系统</option>
-            <option value="light">浅色</option>
-            <option value="dark">深色</option>
-          </select></label
-        >
-        <label
-          >字体大小<select id="fontChoice">
-            <option value="standard">标准</option>
-            <option value="large">大</option>
-            <option value="larger">更大</option>
-          </select></label
-        >
-      </section>
+      </details>
       <section class="settings-section" aria-labelledby="aboutSettingsTitle">
         <h3 id="aboutSettingsTitle">关于报告拾光</h3>
         <div class="about-brand" translate="no">

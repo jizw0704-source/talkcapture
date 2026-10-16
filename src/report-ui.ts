@@ -68,6 +68,9 @@ export function setupReports(
         p.reportId,
         p.reportTitle,
         p.processed,
+        p.thumb,
+        p.result,
+        p.previewKind,
         p.reading,
         p.readingError,
         p.groupingReason,
@@ -76,10 +79,19 @@ export function setupReports(
     if (view === lastView) return;
     lastView = view;
     const expanded = new Set(
-      [...list.querySelectorAll<HTMLElement>(".report-group")]
-        .filter((el) => el.querySelector("details")?.open)
-        .map((el) => el.dataset.report),
+      [...list.querySelectorAll<HTMLDetailsElement>("details[data-disclosure]")]
+        .filter((el) => el.open)
+        .map((el) => el.dataset.disclosure),
     );
+    const disclosure = (key: string, title: string) => {
+      const el = document.createElement("details");
+      el.dataset.disclosure = key;
+      el.open = expanded.has(key);
+      const summary = document.createElement("summary");
+      uiText(summary, () => title);
+      el.append(summary);
+      return el;
+    };
     list.replaceChildren();
     if (!eligible().some((p) => p.reportId)) return;
     const grouped = groups();
@@ -99,7 +111,40 @@ export function setupReports(
           id === "unassigned" ? t(" \u00B7 待分组") : "",
         ),
       );
-      section.append(heading);
+      const header = document.createElement("div");
+      header.className = "report-group-header";
+      const representative = pages[0];
+      const preview = document.createElement("figure");
+      preview.className = "report-cover";
+      const corrected =
+        representative.previewKind === "corrected" && !!representative.result;
+      const source = corrected ? representative.result : representative.thumb;
+      const caption = document.createElement("figcaption");
+      uiText(caption, () => t(corrected ? "首张校正预览" : "首张原图预览"));
+      const unavailable = document.createElement("span");
+      uiText(unavailable, () => t("预览暂不可用"));
+      unavailable.hidden = !!source;
+      preview.append(unavailable);
+      if (source) {
+        const image = document.createElement("img");
+        image.src = source;
+        image.loading = "lazy";
+        image.width = 192;
+        image.height = 108;
+        uiAttr(image, "alt", () => t("报告 {0} 的首张照片", groupNumber));
+        image.onerror = () => {
+          image.hidden = true;
+          caption.hidden = true;
+          unavailable.hidden = false;
+        };
+        preview.append(image);
+      } else caption.hidden = true;
+      preview.append(caption);
+      const info = document.createElement("div");
+      info.className = "report-group-info";
+      info.append(heading);
+      header.append(preview, info);
+      section.append(header);
       const label = document.createElement("label");
       uiText(label, () => t("报告名称"));
       const name = document.createElement("input");
@@ -111,7 +156,7 @@ export function setupReports(
         changed();
       };
       label.append(name);
-      section.append(label);
+      info.append(label);
       const sourcePages = document.createElement("p");
       sourcePages.className = "hint";
       uiText(sourcePages, () =>
@@ -120,40 +165,38 @@ export function setupReports(
           pages.map((p) => getPhotos().indexOf(p) + 1).join(", "),
         ),
       );
-      section.append(sourcePages);
-      if (pages[0].groupingReason) {
-        const hint = document.createElement("p");
-        hint.className = "hint";
-        uiText(hint, () => t("分界线索：{0}", t(pages[0].groupingReason!)));
-        section.append(hint);
-      }
+      info.append(sourcePages);
       const actions = document.createElement("div");
       actions.className = "report-actions";
       actions.append(
         button("导出这份报告", () => onExport(id)),
         button("导出原文 Markdown", () => onExport(id, "md")),
+      );
+      actions.querySelector("button")!.classList.add("primary");
+      const more = disclosure(`${id}:more`, "更多操作");
+      more.className = "report-more";
+      const moreActions = document.createElement("div");
+      moreActions.className = "report-actions";
+      moreActions.append(
         button("重新建议名称", () => {
           suggestReportNameForGroup(getPhotos(), id);
           changed();
           render();
         }),
       );
-      const optional = document.createElement("details");
+      const optional = disclosure(`${id}:analysis`, "可选：内容分析");
       optional.className = "optional-analysis";
-      const optionalTitle = document.createElement("summary");
-      uiText(optionalTitle, () => t("可选：内容分析"));
       const privacy = document.createElement("p");
       privacy.className = "hint";
       uiText(privacy, () =>
         t("仅发送这份报告的识别文字与来源页码，可能计费。"),
       );
       optional.append(
-        optionalTitle,
         privacy,
         button("MiniMax 解读", () => void modelSummary(name.value, pages)),
       );
       if (n > 1)
-        actions.append(
+        moreActions.append(
           button("合并到上一报告", () => {
             const previous = [...grouped.entries()][
               [...grouped.keys()].indexOf(id) - 1
@@ -169,11 +212,15 @@ export function setupReports(
           }),
         );
       section.append(actions);
-      const details = document.createElement("details"),
-        summary = document.createElement("summary");
-      details.open = expanded.has(id);
-      uiText(summary, () => t("核对分组与逐页文字"));
-      details.append(summary);
+      const details = disclosure(`${id}:pages`, "核对分组");
+      details.className = "report-pages";
+      if (pages[0].groupingReason) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        uiText(hint, () => t("分界线索：{0}", t(pages[0].groupingReason!)));
+        details.append(hint);
+      }
+
       for (const p of pages) {
         const row = document.createElement("div");
         row.className = "report-page";
@@ -229,7 +276,12 @@ export function setupReports(
           changed();
         };
         textLabel.append(text);
-        row.append(textLabel);
+        const reading = disclosure(
+          `${id}:text:${p.id}`,
+          text.value ? "逐页识别文字" : "逐页识别文字 · 待补充",
+        );
+        reading.className = "report-reading";
+        reading.append(textLabel);
         if (!text.value) {
           const warning = document.createElement("p");
           uiText(
@@ -237,11 +289,13 @@ export function setupReports(
             () =>
               p.readingError || t("此页尚未识别到文字，保留在报告中，请核对。"),
           );
-          row.append(warning);
+          reading.append(warning);
         }
+        row.append(reading);
         details.append(row);
       }
-      section.append(details, optional);
+      more.append(moreActions, optional);
+      section.append(details, more);
       list.append(section);
     }
     list

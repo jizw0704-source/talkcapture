@@ -57,6 +57,7 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
     });
   });
   const modelDownload = page.waitForEvent("download");
+  await page.locator(".report-more > summary").nth(1).click();
   await page.locator(".optional-analysis > summary").nth(1).click();
   await page
     .locator(".report-group")
@@ -71,9 +72,7 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
     .getByRole("button", { name: "合并到上一报告" })
     .click();
   await expect(page.locator(".report-group")).toHaveCount(1);
-  await page
-    .locator(".report-group > details:not(.optional-analysis) > summary")
-    .click();
+  await page.locator(".report-pages > summary").click();
   await page.getByRole("button", { name: "从此页拆分" }).nth(2).click();
   await expect(page.locator(".report-group")).toHaveCount(2);
   await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
@@ -107,6 +106,7 @@ test("OCR failure preserves pages and MiniMax failure offers recovery", async ({
   await page.route("**/api/analysis/summary", (r) =>
     r.fulfill({ status: 503, json: { error: "请先配置 MINIMAX_API_KEY" } }),
   );
+  await page.locator(".report-more > summary").click();
   await page.locator(".optional-analysis > summary").click();
   await page.getByRole("button", { name: "MiniMax 解读" }).click();
   await expect(page.locator("#reportStatus")).toContainText("仍可下载");
@@ -206,7 +206,9 @@ test("封面和机构变化建议拆组，重试及刷新保留人工分界与�
   await page.locator("#analyzeReports").click();
   await expect(page.locator("#reportStatus")).toContainText("已整理为 3 组");
   await expect(page.locator(".report-group")).toHaveCount(3);
+  await page.locator(".report-pages > summary").first().click();
   await expect(page.locator("#reportList")).toContainText("分界线索：");
+  await page.locator(".report-more > summary").nth(2).click();
   expect(await snapshot()).toEqual(before);
   await page
     .locator(".report-group")
@@ -233,6 +235,7 @@ test("封面和机构变化建议拆组，重试及刷新保留人工分界与�
   await page.locator("#settingsOpen").click();
   await page.locator("#languageChoice").selectOption("en");
   await page.locator("#settingsClose").click();
+  await page.locator(".report-pages > summary").first().click();
   await expect(page.locator("#reportList")).toContainText("Boundary evidence:");
   await expect(page.locator("#reportList")).not.toContainText("待核对");
   await page.setViewportSize({ width: 390, height: 844 });

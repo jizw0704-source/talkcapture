@@ -23,6 +23,7 @@ test("settings dialog, saved display preferences, masked credentials and mobile 
   await expect(page.locator("#settingsPanel")).toBeVisible();
   await expect(page.locator("#keyState")).toContainText("已配置");
   await expect(page.locator("#modelKey")).toHaveValue("");
+  await page.locator("#modelSettings > summary").click();
   await page.locator("#modelKey").fill("test-only-key");
   await page.locator("#saveModelSettings").click();
   await expect(page.locator("#settingsStatus")).toContainText("已保存");
