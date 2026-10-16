@@ -32,6 +32,8 @@ export async function organizeAutomatically<T>(
     );
     try {
       if (!photo.file) throw Error("缺少原图，请重新导入或排除此页。");
+      if (photo.boundaryNeedsReview && !photo.processed)
+        throw Error("已找到可能被遮挡的边界，请人工核对并确认。");
       if (photo.sourceNeedsReview && !photo.processed)
         throw Error(
           "补传原图的内容未能与旧文件核验，请人工核对并确认已有选区。",
@@ -58,6 +60,13 @@ export async function organizeAutomatically<T>(
               ? "发现多个候选画面，请选择要保留的四角。"
               : "未找到完整 PPT 边界，请手动选四角。",
           );
+        }
+        if (detection.source === "partial-edge") {
+          photo.corners = detection.corners.map((p) => ({ ...p }));
+          photo.detection = detection.status;
+          photo.boundaryNeedsReview = true;
+          options.changed();
+          throw Error("已找到可能被遮挡的边界，请人工核对并确认。");
         }
         if (detection.source === "local-correction") {
           photo.corners = detection.corners.map((p) => ({ ...p }));

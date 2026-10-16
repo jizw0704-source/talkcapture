@@ -2,7 +2,7 @@
 
 [中文](usage.md) · [English](usage.en.md) · [Project overview](../README.en.md)
 
-The desktop workflow has three steps: import photos, review images, and export the report. The interface is currently in Chinese. This guide gives the labels used in the application; English documentation does not imply an English interface.
+The desktop workflow has four steps: Import, Review, Group reports, and Export by report. The interface supports Chinese and English.
 
 ## Manual review
 
@@ -76,10 +76,16 @@ Confirmed manual corner edits can teach a local scene memory (up to 30 examples 
 
 ## Report grouping and Markdown (local trial)
 
-Open “分报告与内容总结” after importing photos. macOS Vision reads images locally; conservative topic/speaker/time rules suggest report boundaries for human review. Rename, merge, split, or move pages and correct recognized text. Grouping and text persist with the project. Missing or unreadable pages remain visible. Existing manual groups survive retries; newly imported pages remain unassigned.
+After reviewing photos, continue to Group reports. Recognition starts automatically when all retained pages have been confirmed, or can be retried explicitly. macOS Vision reads images locally; conservative topic/speaker/time rules suggest report boundaries for human review. Rename, merge, split, or move pages and correct recognized text. Grouping and text persist with the project. Missing or unreadable pages remain visible. Existing manual groups survive retries; newly imported pages receive new suggestions on the next recognition run without replacing existing groups or names.
 
-Markdown downloads include an extractive outline, original page references, limitations and full recognized text. This is not generative interpretation. Clicking “MiniMax 解读” sends only the selected report’s recognized text and source page numbers to the official MiniMax API. Images, filenames, titles and other reports are not sent. Cloud usage may incur charges. Configure MINIMAX_API_KEY in the gitignored .env.local copied from .env.example; the backend reads it for each request. MINIMAX_MODEL defaults to MiniMax-M2.5. The default mainland endpoint is https://api.minimax.cn/v1; international accounts can use https://api.minimax.io/v1 with a matching key. The key never reaches the browser. Over 8,000 characters requires splitting; verify generated citations. PPT/PDF still exports the whole project. OCR requires macOS and Apple Command Line Tools; other platforms return an explicit unsupported error.
+Source Markdown includes full recognized text, report and original page numbers, source filenames and recognition warnings. It adds no AI analysis. Clicking “MiniMax 解读” sends only the selected report’s recognized text and source page numbers to the official MiniMax API. Images, filenames, titles and other reports are not sent. Cloud usage may incur charges. Configure MINIMAX_API_KEY in the gitignored .env.local copied from .env.example; the backend reads it for each request. MINIMAX_MODEL defaults to MiniMax-M2.5. The default mainland endpoint is https://api.minimax.cn/v1; international accounts can use https://api.minimax.io/v1 with a matching key. The key never reaches the browser. Over 8,000 characters requires splitting; verify generated citations. PPTX, PDF and source Markdown export only the report selected on the export screen. Whole-project export remains an explicit compatibility option. MiniMax is under each report’s Optional: content analysis disclosure. OCR requires macOS and Apple Command Line Tools; other platforms return an explicit unsupported error.
 
 ## Interface language
 
 Choose 中文 or English in Settings → Language. Labels, actions, dynamic progress, settings and help switch immediately and the choice persists. Original filenames, report titles, recognized text and existing summaries are not translated or rewritten. Phone transfer inherits the desktop language in the QR link, with its own language selector and saved preference. Long English labels wrap on narrow screens without changing image or export dimensions.
+
+## Automatic preparation after upload
+
+With automatic preparation enabled by default, every phone or desktop upload receives a corner suggestion and corrected preview when possible. Unresolved pages retain a clearly labelled original preview for manual selection. Preview failures do not discard uploaded originals. Restoring a project retries only unconfirmed pages without existing points or manual edits.
+
+Confirming manually adjusted corners stores up to 30 local framing examples, including after a refresh. Later uploads may use a reliable example even when geometry also found a candidate. Structured background outside the slide helps match a fixed camera position after slide content changes; flat, insufficient or conflicting examples are rejected. Learned and occluded-boundary suggestions still require review. This is local example matching, not general model training. The explicit “Find PPT corners” action re-runs geometry rather than replaying a learned example.

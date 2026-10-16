@@ -88,7 +88,8 @@ test("一键生成保留人工选区、设置和页序，排除页不输出，�
   const order = await page.locator(".photo-name").allTextContents();
   await revealControl(page, "format");
   await page.locator("#format").selectOption("pdf");
-  await page.locator("#backReview").click();
+  await page.locator("#stepReview").click();
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#download")).toBeVisible();
   await expect(page.locator("#download")).toContainText("PPTX");
@@ -128,7 +129,7 @@ test("一键生成保留人工选区、设置和页序，排除页不输出，�
     path: info.outputPath("batch-desktop.png"),
     fullPage: true,
   });
-  await page.locator("#backReview").click();
+  await page.locator("#stepReview").click();
   await page.locator("#pointSelect").selectOption("0");
   await expect(page.locator("#pointX")).toHaveValue("13.00");
   await expect(page.locator("#brightness")).toHaveValue("8");
@@ -154,6 +155,7 @@ test("不确定页面集中检查，不静默漏页；人工处理后继续生�
   await demo(page);
   await uncertain(page);
   await expect(page.locator(".page-row")).toHaveCount(5);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#automaticIssues li")).toHaveCount(2);
   await expect(page.locator("#download")).toBeHidden();
@@ -172,6 +174,7 @@ test("不确定页面集中检查，不静默漏页；人工处理后继续生�
     await page.locator("#confirm").click();
     await expect(page.locator("#automaticIssues li")).toHaveCount(1 - i);
   }
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#download")).toBeVisible();
   await expect(page.locator("#status")).toContainText("已生成 5 页 PPTX");
@@ -201,6 +204,7 @@ test("自动整理可取消和重试，关闭导入定位也可主动启动，�
   await revealControl(page, "autoDetect");
   await page.locator("#autoDetect").uncheck();
   await demo(page);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#cancelAutomatic")).toBeVisible();
   await expect(page.locator("#autoOrganize")).toBeDisabled();
@@ -209,6 +213,7 @@ test("自动整理可取消和重试，关闭导入定位也可主动启动，�
   await expect(page.locator("#status")).toContainText("已取消");
   await expect(page.locator("#download")).toBeHidden();
   await expect(page.locator(".page-row")).toHaveCount(3);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#download")).toBeVisible();
   await page.waitForTimeout(400);
@@ -242,6 +247,7 @@ test("自动生成文件阶段也能取消，保留自动校正页面后重试",
   });
   await page.goto("/");
   await demo(page);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#status")).toContainText("生成第 1 / 3 页");
   await page.locator("#cancelAutomatic").click();
@@ -249,6 +255,7 @@ test("自动生成文件阶段也能取消，保留自动校正页面后重试",
   await expect(page.locator("#download")).toBeHidden();
   await expect(page.locator("#counts")).toContainText("3 页自动校正");
   await page.locator("#stepReview").click();
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#download")).toBeVisible();
   await expect(page.locator("#status")).toContainText("已生成 3 页 PPTX");
@@ -260,6 +267,7 @@ test("自动入口和待检查列表支持窄屏、键盘及高对比模式", as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await uncertain(page);
+  await revealControl(page, "autoOrganize");
   const action = page.locator("#autoOrganize");
   expect((await action.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await page.keyboard.press("Tab");

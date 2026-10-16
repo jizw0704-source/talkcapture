@@ -154,3 +154,38 @@ test("投影只占照片约十分之一时仍可定位完整边界", () => {
     assert.ok(Math.hypot(p.x - small[i].x, p.y - small[i].y) < 0.03),
   );
 });
+
+test("观众遮住下边缘中段时仍按其余直边找到原投影四角", () => {
+  const { data, width, height } = raster([screen]);
+  for (let y = 240; y < 290; y++)
+    for (let x = 185; x < 300; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = data[i + 1] = data[i + 2] = 35;
+    }
+  const result = detectSlide(data, width, height);
+  assert.equal(result.status, "suggested");
+  result.corners.forEach((p, i) =>
+    assert.ok(Math.hypot(p.x - screen[i].x, p.y - screen[i].y) < 0.035),
+  );
+});
+
+test("内部密集横线不会挤掉投影的左右边界候选", () => {
+  const rect = [
+    { x: 0.12, y: 0.15 },
+    { x: 0.88, y: 0.15 },
+    { x: 0.88, y: 0.85 },
+    { x: 0.12, y: 0.85 },
+  ];
+  const { data, width, height } = raster([rect]);
+  for (let y = 70; y < 250; y += 10)
+    for (let yy = y; yy < y + 3; yy++)
+      for (let x = 68; x < 412; x++) {
+        const i = (yy * width + x) * 4;
+        data[i] = data[i + 1] = data[i + 2] = 10;
+      }
+  const result = detectSlide(data, width, height);
+  assert.equal(result.status, "suggested");
+  result.corners.forEach((p, i) =>
+    assert.ok(Math.hypot(p.x - rect[i].x, p.y - rect[i].y) < 0.035),
+  );
+});

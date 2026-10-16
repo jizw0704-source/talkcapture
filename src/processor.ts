@@ -70,7 +70,9 @@ function runImage(request: Omit<ProcessRequest, "id">) {
     pending.set(id, { resolve, reject, timer });
     worker!.postMessage({
       ...request,
-      ...(request.kind === "detect" ? { examples: loadCorrections() } : {}),
+      ...(request.kind === "detect"
+        ? { examples: request.examples ?? loadCorrections() }
+        : {}),
       id,
     });
   });

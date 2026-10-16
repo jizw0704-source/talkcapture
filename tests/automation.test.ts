@@ -183,3 +183,19 @@ test("本地纠正建议必须人工确认，不能静默自动生成", async ()
   assert.deepEqual(r.prepared, []);
   assert.equal((await organizeAutomatically([p], r.options)).length, 1);
 });
+
+test("局部遮挡的边界建议需确认，重试也不能跳过检查直接导出", async () => {
+  const p = photo("occluded");
+  const r = runner();
+  r.options.detect = async () => ({
+    status: "suggested",
+    corners: fullCorners(),
+    source: "partial-edge",
+  });
+  assert.equal((await organizeAutomatically([p], r.options)).length, 1);
+  assert.equal(p.boundaryNeedsReview, true);
+  assert.equal(p.processed, false);
+  assert.deepEqual(r.prepared, []);
+  assert.equal((await organizeAutomatically([p], r.options)).length, 1);
+  assert.deepEqual(r.prepared, []);
+});

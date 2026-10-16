@@ -2,12 +2,19 @@ import { t, uiText, uiAttr } from "../shared/i18n.js";
 import { processImage } from "./processor";
 import { validateCorners } from "./geometry";
 import type { Photo } from "./types";
-import { suggestGroups, titleOf, reportMarkdown } from "./reports";
+import {
+  suggestGroups,
+  titleOf,
+  reportMarkdown,
+  reportSourceMarkdown,
+  groupName,
+} from "./reports";
 export function setupReports(
   getPhotos: () => Photo[],
   changed: () => void,
   isBusy: () => boolean,
   setBusy: (value: boolean) => void,
+  onExport: (reportId: string) => void = () => {},
 ) {
   const root = document.getElementById("reportWorkspace")!;
   const status = document.getElementById("reportStatus")!;
@@ -57,6 +64,7 @@ export function setupReports(
         p.id,
         p.reportId,
         p.reportTitle,
+        p.processed,
         p.reading,
         p.readingError,
       ]),
@@ -93,7 +101,7 @@ export function setupReports(
       const name = document.createElement("input");
       name.value = pages[0].reportTitle || titleOf(pages[0]);
       name.maxLength = 100;
-      name.disabled = running;
+      name.disabled = running || isBusy();
       name.onchange = () => {
         for (const p of pages)
           p.reportTitle = name.value.trim() || titleOf(pages[0]);
@@ -101,14 +109,46 @@ export function setupReports(
       };
       label.append(name);
       section.append(label);
+      const sourcePages = document.createElement("p");
+      sourcePages.className = "hint";
+      uiText(sourcePages, () =>
+        t(
+          "来源页：{0}",
+          pages.map((p) => getPhotos().indexOf(p) + 1).join(", "),
+        ),
+      );
+      section.append(sourcePages);
       const actions = document.createElement("div");
       actions.className = "report-actions";
       actions.append(
-        button("下载总结 Markdown", () =>
-          download(name.value, reportMarkdown(name.value, pages, getPhotos())),
+        button("下载原文 Markdown", () =>
+          download(
+            name.value,
+            reportSourceMarkdown(name.value, pages, getPhotos()),
+          ),
         ),
       );
+      actions.prepend(button("导出这份报告", () => onExport(id)));
       actions.append(
+        button("重新建议名称", () => {
+          const suggested = groupName(pages);
+          for (const p of pages) p.reportTitle = suggested;
+          changed();
+          render();
+        }),
+      );
+      const optional = document.createElement("details");
+      optional.className = "optional-analysis";
+      const optionalTitle = document.createElement("summary");
+      uiText(optionalTitle, () => t("可选：内容分析"));
+      const privacy = document.createElement("p");
+      privacy.className = "hint";
+      uiText(privacy, () =>
+        t("仅发送这份报告的识别文字与来源页码，可能计费。"),
+      );
+      optional.append(
+        optionalTitle,
+        privacy,
         button("MiniMax 解读", () => void modelSummary(name.value, pages)),
       );
       if (n > 1)
@@ -143,7 +183,7 @@ export function setupReports(
         const targetLabel = document.createElement("label");
         uiText(targetLabel, () => t("所属报告"));
         const select = document.createElement("select");
-        select.disabled = running;
+        select.disabled = running || isBusy();
         for (const [key, ps] of grouped) {
           const option = document.createElement("option");
           option.value = key;
@@ -174,7 +214,7 @@ export function setupReports(
         const text = document.createElement("textarea");
         text.rows = 5;
         text.value = p.reading?.text || "";
-        text.disabled = running;
+        text.disabled = running || isBusy();
         text.onchange = () => {
           p.reading = {
             text: text.value,
@@ -196,10 +236,12 @@ export function setupReports(
         }
         details.append(row);
       }
-      section.append(details);
+      section.append(details, optional);
       list.append(section);
     }
-    list.querySelectorAll("button").forEach((b) => (b.disabled = running));
+    list
+      .querySelectorAll("button")
+      .forEach((b) => (b.disabled = running || isBusy()));
   }
   async function modelSummary(title: string, pages: Photo[]) {
     if (running) return;
@@ -227,7 +269,7 @@ export function setupReports(
       );
       setStatus("解读总结已生成并下载，包含逐页原文，便于核对与 Agent 使用。");
     } catch (e) {
-      setStatus((e as Error).message + "。仍可下载本地摘录总结。");
+      setStatus((e as Error).message + "。仍可下载原文 Markdown。");
     } finally {
       running = false;
       setBusy(false);
@@ -235,7 +277,7 @@ export function setupReports(
     }
   }
   cancel.onclick = () => controller?.abort();
-  run.onclick = async () => {
+  async function prepareGroups() {
     if (running || isBusy()) return;
     const photos = eligible();
     running = true;
@@ -285,7 +327,7 @@ export function setupReports(
             confidence: lines.length
               ? lines.reduce((s, l) => s + l.confidence, 0) / lines.length
               : 0,
-            digest: p.digest || "",
+            digest: sourceKey(p),
           };
           p.readingError = p.reading.text
             ? undefined
@@ -301,17 +343,25 @@ export function setupReports(
           setStatus(`${p.name}：${(e as Error).message}`);
         }
       }
-      // Preserve human grouping on subsequent runs. New pages remain explicitly unassigned.
-      if (!photos.some((p) => p.reportId))
-        for (const group of suggestGroups(photos)) {
-          group.photo.reportId = group.reportId;
-          group.photo.reportTitle = titleOf(
-            photos.find((p) => p.id === group.reportId)!,
-          );
+      // Keep human group IDs and names. Only assign previously ungrouped pages.
+      let active = "";
+      for (const suggestion of suggestGroups(photos)) {
+        const p = suggestion.photo;
+        if (p.reportId) {
+          active = p.reportId;
+          continue;
         }
+        if (suggestion.start || !active) active = p.id;
+        p.reportId = active;
+      }
+      for (const [id, pages] of groups()) {
+        const name =
+          pages.find((p) => p.reportTitle)?.reportTitle || groupName(pages);
+        for (const p of pages) p.reportTitle = name;
+      }
       changed();
       setStatus(
-        `已整理为 ${groups().size} 组，请核对分界。${failed ? ` ${failed} 页缺少可识别文字，仍保留在分组中；可补图后重试或手动填写。` : " 可修改分组和报告名称，然后下载 Markdown。"}`,
+        `已整理为 ${groups().size} 组，请核对分界。${failed ? ` ${failed} 页缺少可识别文字，仍保留在分组中；可补图后重试或手动填写。` : " 可修改分组和名称，再按组导出 PPT、PDF 或原文 Markdown。"}`,
       );
     } catch (e) {
       setStatus((e as Error).message);
@@ -322,10 +372,11 @@ export function setupReports(
       controller = undefined;
       render();
     }
-  };
+  }
+  run.onclick = () => void prepareGroups();
   window.addEventListener("pagehide", () => controller?.abort(), {
     once: true,
   });
   render();
-  return render;
+  return Object.assign(render, { prepare: prepareGroups });
 }

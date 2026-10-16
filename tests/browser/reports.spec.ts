@@ -5,7 +5,7 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
   await page.goto("/");
   await page.locator("#demo").click();
   await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
-  await page.locator("#reportWorkspace > summary").click();
+  await page.locator("#stepGroups").click();
   let calls = 0;
   await page.route("**/api/analysis/ocr", (route) => {
     calls++;
@@ -34,7 +34,7 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
   await expect(page.locator("#reportStatus")).toContainText("已整理为 2 组");
   await expect(page.locator(".report-group")).toHaveCount(2);
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "下载总结 Markdown" }).nth(1).click();
+  await page.getByRole("button", { name: "下载原文 Markdown" }).nth(1).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.md$/);
   await page.route("**/api/analysis/summary", (route) => {
@@ -48,7 +48,12 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
     });
   });
   const modelDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: "MiniMax 解读" }).nth(1).click();
+  await page.locator(".optional-analysis > summary").nth(1).click();
+  await page
+    .locator(".report-group")
+    .nth(1)
+    .getByRole("button", { name: "MiniMax 解读" })
+    .click();
   await modelDownload;
   await expect(page.locator("#reportStatus")).toContainText("已生成并下载");
   await page
@@ -57,12 +62,14 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
     .getByRole("button", { name: "合并到上一报告" })
     .click();
   await expect(page.locator(".report-group")).toHaveCount(1);
-  await page.locator(".report-group details > summary").click();
+  await page
+    .locator(".report-group > details:not(.optional-analysis) > summary")
+    .click();
   await page.getByRole("button", { name: "从此页拆分" }).nth(2).click();
   await expect(page.locator(".report-group")).toHaveCount(2);
   await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
   await page.reload();
-  await page.locator("#reportWorkspace > summary").click();
+  await page.locator("#stepGroups").click();
   await expect(page.locator(".report-group")).toHaveCount(2);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
@@ -81,7 +88,7 @@ test("OCR failure preserves pages and MiniMax failure offers recovery", async ({
   await page.goto("/");
   await page.locator("#demo").click();
   await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
-  await page.locator("#reportWorkspace > summary").click();
+  await page.locator("#stepGroups").click();
   await page.route("**/api/analysis/ocr", (r) =>
     r.fulfill({ status: 422, json: { error: "测试识别失败" } }),
   );
@@ -91,6 +98,7 @@ test("OCR failure preserves pages and MiniMax failure offers recovery", async ({
   await page.route("**/api/analysis/summary", (r) =>
     r.fulfill({ status: 503, json: { error: "请先配置 MINIMAX_API_KEY" } }),
   );
+  await page.locator(".optional-analysis > summary").click();
   await page.getByRole("button", { name: "MiniMax 解读" }).click();
   await expect(page.locator("#reportStatus")).toContainText("仍可下载");
 });

@@ -92,10 +92,11 @@ test("刷新恢复原图字节、选区与顺序，无需重传即可生成 PPT"
       }),
   );
   expect(originalIntegrity).toBe(true);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#download")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator("#backReview").click();
+  await page.locator("#stepReview").click();
   await expect(page.locator("#canvasEmpty")).toBeHidden();
   await expect(page.locator("#previewImage")).toBeVisible();
   await ready(page, 3);
@@ -193,6 +194,7 @@ test("旧版数据库升级保留编辑，明确补传新文件不新增或清�
   expect(after.photos[0].selection).toBe(before.photos[0].selection);
   expect(after.photos[0].sourceNeedsReview).toBe(true);
   expect(after.photos[0].processed).toBe(false);
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#automaticIssues")).toContainText("补传原图");
   await expect(page.locator("#download")).toBeHidden();

@@ -69,3 +69,32 @@ test("构图特征不保存原像素，均匀亮度差不改变布局", () => {
   assert.equal(a.cells.length, 96);
   assert.ok(a.cells.every((v, i) => Math.abs(v - b.cells[i]) < 0.002));
 });
+
+test("同一拍摄构图更换幻灯片内容后仍可参考已确认的场地边界", () => {
+  const corners = [
+    { x: 0.25, y: 0.25 },
+    { x: 0.75, y: 0.25 },
+    { x: 0.75, y: 0.75 },
+    { x: 0.25, y: 0.75 },
+  ];
+  const cells = Array.from({ length: 96 }, (_, i) =>
+    ((i % 12) + Math.floor(i / 12)) % 2 ? 0.25 : -0.25,
+  );
+  const changed = cells.map((v, i) => {
+    const x = ((i % 12) + 0.5) / 12,
+      y = (Math.floor(i / 12) + 0.5) / 8;
+    return x > 0.25 && x < 0.75 && y > 0.25 && y < 0.75 ? -v : v;
+  });
+  assert.deepEqual(
+    matchCorrection({ aspect: 1.5, cells: changed }, [
+      { feature: { aspect: 1.5, cells }, corners, time: 1 },
+    ]),
+    corners,
+  );
+  assert.equal(
+    matchCorrection({ aspect: 1.5, cells: changed.map((v) => -v) }, [
+      { feature: { aspect: 1.5, cells }, corners, time: 1 },
+    ]),
+    undefined,
+  );
+});

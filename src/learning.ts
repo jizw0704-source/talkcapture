@@ -98,11 +98,14 @@ export function matchCorrection(
     .filter((e) => Math.abs(e.feature.aspect / feature.aspect - 1) < 0.025)
     .map((e) => ({
       e,
-      d: Math.sqrt(
-        e.feature.cells.reduce(
-          (s, v, i) => s + (v - feature.cells[i]) ** 2,
-          0,
-        ) / 96,
+      d: Math.min(
+        backgroundDistance(feature, e),
+        Math.sqrt(
+          e.feature.cells.reduce(
+            (s, v, i) => s + (v - feature.cells[i]) ** 2,
+            0,
+          ) / 96,
+        ),
       ),
     }))
     .sort((a, b) => a.d - b.d);
@@ -133,4 +136,37 @@ export function rememberCorrection(
     ),
     correction,
   ].slice(-30);
+}
+
+// A slide may change while the venue and camera framing stay the same.
+// Only use outside-screen layout when enough structured background exists;
+// a flat dark wall must never become an identifying feature.
+function backgroundDistance(feature: SceneFeature, example: Correction) {
+  const outside = example.feature.cells
+    .map((_, i) => i)
+    .filter((i) => {
+      const x = ((i % 12) + 0.5) / 12,
+        y = (Math.floor(i / 12) + 0.5) / 8;
+      return !example.corners.every((p, k) => {
+        const q = example.corners[(k + 1) % 4];
+        return (q.x - p.x) * (y - p.y) - (q.y - p.y) * (x - p.x) >= 0;
+      });
+    });
+  if (outside.length < 24) return Infinity;
+  const mean = (cells: number[]) =>
+    outside.reduce((sum, i) => sum + cells[i], 0) / outside.length;
+  const a = mean(feature.cells),
+    b = mean(example.feature.cells);
+  const energy = Math.sqrt(
+    outside.reduce((sum, i) => sum + (example.feature.cells[i] - b) ** 2, 0) /
+      outside.length,
+  );
+  if (energy < 0.07) return Infinity;
+  return Math.sqrt(
+    outside.reduce(
+      (sum, i) =>
+        sum + (feature.cells[i] - a - (example.feature.cells[i] - b)) ** 2,
+      0,
+    ) / outside.length,
+  );
 }

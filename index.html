@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="在本机整理报告照片，核对画面后导出 PPTX 或 PDF。"
+      content="在本机校正报告照片，按报告分组并导出 PPTX、PDF 或原文 Markdown。"
     />
     <link rel="icon" href="/brand/talkcapture-mark.svg" type="image/svg+xml" />
     <title>报告拾光 · TalkCapture</title>
@@ -62,8 +62,11 @@
         <button id="stepReview" aria-controls="reviewScreen" disabled>
           <span>2</span> 核对画面
         </button>
+        <button id="stepGroups" aria-controls="groupsScreen" disabled>
+          <span>3</span> 分报告
+        </button>
         <button id="stepExport" aria-controls="exportScreen" disabled>
-          <span>3</span> 导出报告
+          <span>4</span> 按组导出
         </button>
       </nav>
       <div class="header-tools">
@@ -93,12 +96,13 @@
         hidden
       ></div>
       <progress id="progress" max="100" value="0" hidden></progress>
-      <section
+      <details
         id="automaticPanel"
         class="automatic-panel"
         aria-label="自动整理"
         hidden
       >
+        <summary>可选：整项目快速导出</summary>
         <div class="automatic-actions">
           <span id="automaticSummary" class="automatic-summary"></span>
           <div>
@@ -119,7 +123,7 @@
           </p>
           <ul id="automaticIssues" class="automatic-issues"></ul>
         </div>
-      </section>
+      </details>
       <section
         id="phonePanel"
         class="phone-panel"
@@ -181,9 +185,9 @@
         <div class="import-layout">
           <div class="intro">
             <h2 id="importTitle" tabindex="-1">
-              把报告照片<br />整理成一份文件
+              把报告照片<br />整理成可用资料
             </h2>
-            <p>自动校正，核对后导出 PPT 或 PDF。</p>
+            <p>自动校正、分报告，导出 PPT、PDF 或原文 Markdown。</p>
           </div>
           <div class="upload-area">
             <section
@@ -235,7 +239,7 @@
             <div class="toolbar">
               <label
                 ><input id="autoDetect" type="checkbox" checked />
-                导入时自动找出 PPT</label
+                上传后自动找四角并生成预览</label
               ><label
                 >初始页序
                 <select id="sort">
@@ -248,22 +252,29 @@
           </details>
         </div>
       </section>
-      <details id="reportWorkspace" class="report-workspace" hidden>
-        <summary>分报告与内容总结</summary>
-        <p class="hint">
-          在本机识别文字并建议分组。核对后，每份报告可单独下载
-          Markdown，交给自己的 Agent。
-        </p>
-        <div class="report-actions">
-          <button id="analyzeReports">识别内容并自动分报告</button
-          ><button id="cancelAnalysis" hidden>取消识别</button>
+      <section id="groupsScreen" aria-labelledby="groupsTitle" hidden>
+        <div class="screen-heading">
+          <h2 id="groupsTitle" tabindex="-1">分报告与智能命名</h2>
+          <button id="groupsBack">返回核对</button>
         </div>
-        <p id="reportStatus" role="status" class="hint">
-          照片与文字识别在本机处理。「MiniMax
-          解读」仅发送当前报告的识别文字，不发送原图；云端调用可能计费。
-        </p>
-        <div id="reportList"></div>
-      </details>
+        <div id="reportWorkspace" class="report-workspace" hidden>
+          <p class="hint">
+            按报告人、标题和内容线索建议分组。核对名称与分界后，每组可分别导出
+            PPT、PDF 或原文 Markdown。
+          </p>
+          <div class="report-actions">
+            <button id="analyzeReports">识别并建议分组</button
+            ><button id="cancelAnalysis" hidden>取消识别</button>
+          </div>
+          <p id="reportStatus" role="status" class="hint">
+            文字识别与分组在本机进行；分界和名称是待核对建议。内容分析为可选操作。
+          </p>
+          <div id="reportList"></div>
+        </div>
+        <div class="actions">
+          <button id="groupsExport" class="primary">下一步：按组导出</button>
+        </div>
+      </section>
       <section id="reviewScreen" aria-labelledby="reviewTitle" hidden>
         <div class="screen-heading">
           <h2 id="reviewTitle" tabindex="-1">核对画面</h2>
@@ -466,7 +477,7 @@
             <div class="confirm-bar">
               <button id="exclude" class="quiet">排除此页</button>
               <div class="actions">
-                <button id="goExport">去导出</button
+                <button id="goExport">下一步：分报告</button
                 ><button id="confirm" class="primary">校正并确认</button>
               </div>
             </div>
@@ -481,7 +492,7 @@
         hidden
       >
         <div class="section-heading">
-          <h2 id="exportTitle" tabindex="-1">导出报告</h2>
+          <h2 id="exportTitle" tabindex="-1">按组导出</h2>
           <span id="exportSummary" class="muted">导入后可导出</span>
         </div>
         <div id="downloadResult" class="download-result" role="status" hidden>
@@ -489,9 +500,14 @@
           <p id="downloadInfo" class="muted"></p>
           <a id="download" class="download" hidden>下载文件</a>
         </div>
-        <p class="hint">名称建议依据拍摄日期、文件名与页数生成；可直接修改。</p>
+        <p class="hint">核对名称后导出；可根据标题、报告人与日期重新建议。</p>
         <button id="suggestName">重新建议报告名称</button>
         <div class="export-fields">
+          <label class="report-name"
+            >选择报告<select id="exportGroup" aria-label="选择报告">
+              <option value="all">整个项目（尚未分报告）</option>
+            </select></label
+          >
           <label class="report-name"
             >报告名称
             <input
@@ -505,6 +521,7 @@
             <select id="format">
               <option value="pptx">PowerPoint · PPTX</option>
               <option value="pdf">PDF</option>
+              <option value="md">原文 Markdown · MD</option>
             </select></label
           ><label
             >页面
@@ -530,7 +547,7 @@
           <p id="estimate" class="hint">图片保持比例，完整放入页面。</p>
         </details>
         <div class="confirm-bar">
-          <button id="backReview">返回核对</button>
+          <button id="backReview">返回分报告</button>
           <div class="actions">
             <button id="export" class="primary">生成文件</button
             ><button id="cancel" hidden>取消导出</button>
@@ -667,9 +684,12 @@
             />
           </div>
         </div>
-        <p class="hint">将报告照片整理成 PPT、PDF 与可溯源的 Markdown 总结。</p>
+        <p class="hint">
+          将报告照片按组整理成 PPT、PDF 与可溯源的原文 Markdown。
+        </p>
         <p class="hint" lang="en">
-          Organize presentation photos and create source-linked summaries.
+          Organize presentation photos into grouped files and source-linked
+          text.
         </p>
         <p id="versionInfo" class="hint"></p>
         <p id="buildInfo" class="hint"></p>

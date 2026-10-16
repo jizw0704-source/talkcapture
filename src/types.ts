@@ -26,9 +26,13 @@ export type Photo = {
   reportId?: string;
   reportTitle?: string;
   sourceNeedsReview?: boolean;
+  boundaryNeedsReview?: boolean;
   file?: File;
   thumb?: string;
   result?: string;
+  previewKind?: "original" | "corrected";
+  previewError?: string;
+  manuallyAdjusted?: boolean;
   resultWidth?: number;
   resultHeight?: number;
 };

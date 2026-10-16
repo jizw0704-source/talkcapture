@@ -224,7 +224,8 @@ test("失败与多候选保留照片，重试失败不覆盖已确认的手动�
   ]);
   await expect(page.locator(".page-row")).toHaveCount(2);
   await expect(page.locator("#cornerPrompt")).toContainText("未找到可靠");
-  await expect(page.locator("#previewImage")).toBeHidden();
+  await expect(page.locator("#previewImage")).toBeVisible();
+  await expect(page.locator("#previewMeta")).toContainText("原图预览");
   await revealControl(page, "whole");
   await page.locator("#whole").click();
   await revealControl(page, "autoNext");
@@ -242,7 +243,8 @@ test("失败与多候选保留照片，重试失败不覆盖已确认的手动�
   await revealControl(page, "next");
   await page.locator("#next").click();
   await expect(page.locator("#cornerPrompt")).toContainText("多个候选");
-  await expect(page.locator("#previewImage")).toBeHidden();
+  await expect(page.locator("#previewImage")).toBeVisible();
+  await expect(page.locator("#previewMeta")).toContainText("原图预览");
 });
 
 test("重新关联原图不重新检测或覆盖既有手动参数", async ({ page }) => {
@@ -319,7 +321,7 @@ test("自动定位入口的窄屏布局、键盘焦点和无障碍模式", async
   await expect(page.locator("#cornerPrompt")).toContainText("自动建议");
 });
 
-test("三步流程按需展开，切换步骤保留选区和人工确认", async ({ page }, info) => {
+test("四步流程按需展开，切换步骤保留选区和人工确认", async ({ page }, info) => {
   await page.goto("/");
   await expect(page.locator("#importScreen")).toBeVisible();
   await expect(page.locator("#stepReview")).toBeDisabled();
@@ -337,12 +339,14 @@ test("三步流程按需展开，切换步骤保留选区和人工确认", async
   await expect(page.locator("#pointX")).toBeHidden();
   await expect(page.locator("#moveSelected")).toBeHidden();
   await page.locator("#goExport").click();
+  await expect(page.locator("#groupsScreen")).toBeVisible();
+  await page.locator("#stepExport").click();
   await expect(page.locator("#exportTitle")).toBeFocused();
   await expect(page.locator("#exportCheck")).toContainText("1 页未确认");
   await expect(page.locator("#allowOriginal")).not.toBeChecked();
   await page.locator("#export").click();
   await expect(page.locator("#status")).toContainText("存在未确认页");
-  await page.locator("#backReview").click();
+  await page.locator("#stepReview").click();
   await expect(page.locator("#reviewTitle")).toBeFocused();
   const disclosure = page.locator("#editTools > summary");
   await disclosure.focus();
@@ -358,6 +362,8 @@ test("三步流程按需展开，切换步骤保留选区和人工确认", async
   await page.locator("#confirm").click();
   await expect(page.locator("#counts")).toContainText("1 页已确认");
   await page.locator("#goExport").click();
+  await expect(page.locator("#groupsScreen")).toBeVisible();
+  await page.locator("#stepExport").click();
   await expect(page.locator("#exportCheck")).toContainText("已确认 1 页");
   await page.setViewportSize({ width: 390, height: 844 });
   for (const step of ["import", "review", "export"] as const) {

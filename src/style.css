@@ -258,7 +258,52 @@ input[type="number"] {
   place-items: center;
   background: var(--border);
   color: var(--secondary);
-  font-size: 0.8571rem;
+  /* Keep the step number in the accessible name; show its action visually. */
+  font-size: 0;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+.steps button span::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask: var(--step-icon) center / contain no-repeat;
+}
+#stepImport {
+  --step-icon: url("/icons/photo.svg");
+}
+#stepReview {
+  --step-icon: url("/icons/corners.svg");
+}
+#stepGroups {
+  --step-icon: url("/icons/groups.svg");
+}
+#stepExport {
+  --step-icon: url("/icons/download.svg");
+}
+@media (prefers-reduced-motion: no-preference) {
+  .steps button span::before {
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    #stepImport:not(:disabled):hover span::before {
+      transform: translateY(-2px);
+    }
+    #stepReview:not(:disabled):hover span::before {
+      transform: scale(1.12);
+    }
+    #stepGroups:not(:disabled):hover span::before {
+      transform: translateX(2px);
+    }
+    #stepExport:not(:disabled):hover span::before {
+      transform: translateY(2px);
+    }
+  }
+  .steps button:not(:disabled):active span::before {
+    transform: scale(0.9);
+  }
 }
 .steps button[aria-current="step"] {
   font-weight: 600;
@@ -1470,5 +1515,42 @@ textarea::placeholder {
   #backReview::before,
   #demo::before {
     display: none;
+  }
+}
+
+body[data-stage="groups"] .automatic-panel:not([aria-busy="true"]),
+body[data-stage="export"] .automatic-panel:not([aria-busy="true"]) {
+  display: none;
+}
+#groupsScreen {
+  max-width: 960px;
+  margin: 24px auto;
+}
+#groupsScreen .report-workspace {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+}
+.optional-analysis {
+  margin-top: 12px;
+  color: var(--secondary);
+}
+.optional-analysis > button {
+  margin-bottom: 12px;
+}
+@media (max-width: 720px) {
+  .steps {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .steps button {
+    flex-direction: column;
+    min-width: 0;
+    min-height: 64px;
+    padding: 6px 2px;
+    gap: 4px;
+    font-size: 0.7857rem;
   }
 }

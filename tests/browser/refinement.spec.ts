@@ -1,4 +1,19 @@
 import { test, expect } from "@playwright/test";
+import { revealControl } from "./ui";
+
+test("步骤图标反馈尊重减少动态效果设置", async ({ page }) => {
+  await page.goto("/");
+  const icon = page.locator("#stepImport span");
+  const transform = () =>
+    icon.evaluate((el) => getComputedStyle(el, "::before").transform);
+  await page.locator("#stepImport").hover();
+  await expect.poll(transform).toBe("matrix(1, 0, 0, 1, 0, -2)");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(transform).toBe("none");
+  await page.locator("#stepImport").focus();
+  await expect(page.locator("#stepImport")).toBeFocused();
+  await expect(page.locator("#stepImport")).toHaveAccessibleName("1 导入照片");
+});
 
 test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设置会撤销旧结果", async ({
   page,
@@ -51,6 +66,7 @@ test("导入入口和键盘跳转在桌面与窄屏可用，下载后修改设�
   });
   await expect(page.locator("#autoOrganize")).toBeEnabled();
   await expect(page.locator("#automaticSummary")).toContainText("3 页保留");
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#downloadResult")).toBeVisible();
   await expect(page.locator("#downloadInfo")).toContainText(".pptx · 3 页");

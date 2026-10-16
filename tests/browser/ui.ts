@@ -20,32 +20,35 @@ export async function revealControl(page: Page, id: string) {
     await page
       .locator(`#step${stage[0].toUpperCase()}${stage.slice(1)}`)
       .click();
-  const detail = ["autoDetect", "sort", "clear"].includes(id)
-    ? "importSettings"
-    : id === "allowOriginal"
-      ? "exportOptions"
-      : [
-            "pointSelect",
-            "pointX",
-            "pointY",
-            "applyPoint",
-            "autoNext",
-            "whole",
-            "reset",
-            "inherit",
-            "brightness",
-            "contrast",
-          ].includes(id)
-        ? "editTools"
-        : [
-              "excludeSelected",
-              "restoreSelected",
-              "movePosition",
-              "moveSelected",
-              "pageTools",
-            ].includes(id)
-          ? "pageTools"
-          : "";
+  const detail =
+    id === "autoOrganize"
+      ? "automaticPanel"
+      : ["autoDetect", "sort", "clear"].includes(id)
+        ? "importSettings"
+        : id === "allowOriginal"
+          ? "exportOptions"
+          : [
+                "pointSelect",
+                "pointX",
+                "pointY",
+                "applyPoint",
+                "autoNext",
+                "whole",
+                "reset",
+                "inherit",
+                "brightness",
+                "contrast",
+              ].includes(id)
+            ? "editTools"
+            : [
+                  "excludeSelected",
+                  "restoreSelected",
+                  "movePosition",
+                  "moveSelected",
+                  "pageTools",
+                ].includes(id)
+              ? "pageTools"
+              : "";
   if (detail && !(await page.locator(`#${detail}[open]`).count()))
     await page.locator(`#${detail} > summary`).click();
 }

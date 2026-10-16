@@ -1,7 +1,11 @@
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
 import { setupSettings } from "./settings";
 import { setupReports } from "./report-ui";
+import { reportGroups, reportSourceMarkdown, groupName } from "./reports";
 let refreshReports = () => {};
+let prepareReports = async () => {};
+let selectedReportId = "all";
+let groupSelectionInitialized = false;
 import "./style.css";
 import { suggestReportName } from "./naming";
 import {
@@ -34,7 +38,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
 const input = (id: string) => $<HTMLInputElement>(id);
 const select = (id: string) => $<HTMLSelectElement>(id);
 const names = ["左上", "右上", "右下", "左下"];
-type Stage = "import" | "review" | "export";
+type Stage = "import" | "review" | "groups" | "export";
 let stage: Stage = "import";
 let photos: Photo[] = [],
   currentId = "",
@@ -134,7 +138,7 @@ const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 function renderStage() {
   document.body.dataset.stage = stage;
   document.body.dataset.empty = String(!photos.length);
-  for (const name of ["import", "review", "export"] as const) {
+  for (const name of ["import", "review", "groups", "export"] as const) {
     $(`${name}Screen`).hidden = stage !== name;
     const id = `step${name[0].toUpperCase()}${name.slice(1)}`;
     const control = $<HTMLButtonElement>(id);
@@ -149,7 +153,12 @@ function renderStage() {
 function showStage(next: Stage, focus = true) {
   if (busy || (next !== "import" && !photos.length)) return;
   stage = next;
-  if (next === "export") updateSuggestedName();
+  if (next === "groups") refreshReports();
+  if (next === "groups" || next === "export") $("phonePanel").hidden = true;
+  if (next === "export") {
+    syncExportGroups();
+    if (selectedReportId === "all") updateSuggestedName();
+  }
   renderStage();
   if (
     next === "review" &&
@@ -162,14 +171,75 @@ function showStage(next: Stage, focus = true) {
     void openPhoto(currentId);
   else draw();
   if (focus) $(`${next}Title`).focus();
+  if (
+    next === "groups" &&
+    photos.some((p) => !p.excluded) &&
+    photos.filter((p) => !p.excluded).every((p) => p.processed) &&
+    photos.some((p) => !p.excluded && !p.reportId)
+  )
+    void prepareReports();
 }
-for (const name of ["import", "review", "export"] as const)
+for (const name of ["import", "review", "groups", "export"] as const)
   $(`step${name[0].toUpperCase()}${name.slice(1)}`).onclick = () =>
     showStage(name);
 $("addMore").onclick = () => showStage("import");
 $("continueReview").onclick = () => showStage("review");
-$("goExport").onclick = () => showStage("export");
-$("backReview").onclick = () => showStage("review");
+$("goExport").onclick = () => showStage("groups");
+$("groupsBack").onclick = () => showStage("review");
+$("groupsExport").onclick = () => showStage("export");
+$("backReview").onclick = () => showStage("groups");
+function exportPhotos() {
+  return photos.filter(
+    (p) =>
+      !p.excluded &&
+      (selectedReportId === "all" ||
+        (p.reportId || "unassigned") === selectedReportId),
+  );
+}
+function syncExportGroups() {
+  const control = select("exportGroup");
+  const grouped = reportGroups(photos);
+  const hasGroups = photos.some((p) => !p.excluded && p.reportId);
+  if (
+    hasGroups &&
+    ((!groupSelectionInitialized && selectedReportId === "all") ||
+      (selectedReportId !== "all" &&
+        !grouped.some((g) => g.id === selectedReportId)))
+  )
+    selectedReportId = grouped[0]?.id || "all";
+  if (hasGroups) groupSelectionInitialized = true;
+  if (!hasGroups) {
+    selectedReportId = "all";
+    groupSelectionInitialized = false;
+  }
+  const options = hasGroups
+    ? grouped.map((g) => ({ value: g.id, label: g.title }))
+    : [{ value: "all", label: t("整个项目（尚未分报告）") }];
+  if (hasGroups)
+    options.push({ value: "all", label: t("整个项目（全部报告）") });
+  control.replaceChildren(
+    ...options.map((o) => {
+      const option = document.createElement("option");
+      option.value = o.value;
+      option.textContent = o.label;
+      return option;
+    }),
+  );
+  control.value = selectedReportId;
+  const group = grouped.find((g) => g.id === selectedReportId);
+  if (
+    group &&
+    stage === "export" &&
+    document.activeElement !== input("projectName")
+  )
+    input("projectName").value = group.title;
+}
+select("exportGroup").onchange = () => {
+  selectedReportId = select("exportGroup").value;
+  revokeDownload();
+  syncExportGroups();
+  renderSummary();
+};
 function revokeDownload() {
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = "";
@@ -283,6 +353,7 @@ $("retryCache").onclick = async () => {
   }
 };
 function history(photo: Photo) {
+  photo.manuallyAdjusted = true;
   photo.detection = undefined;
   photo.learnedSuggestion = undefined;
   const list = histories.get(photo.id) || [];
@@ -477,12 +548,22 @@ $("cancelAutomatic").onclick = () => {
 };
 function renderSummary() {
   renderCacheStatus();
+  syncExportGroups();
+  const exporting = exportPhotos();
+  const markdown = select("format").value === "md";
+  select("aspect").closest("label")!.hidden = markdown;
+  select("quality").closest("label")!.hidden = markdown;
+  $("exportOptions").hidden = markdown;
   const needsReview = photos.filter(
     (p) =>
       p.file &&
       !p.excluded &&
       !p.processed &&
-      (p.corners.length !== 4 || p.learnedSuggestion || p.sourceNeedsReview),
+      (p.corners.length !== 4 ||
+        p.learnedSuggestion ||
+        p.sourceNeedsReview ||
+        p.boundaryNeedsReview ||
+        p.previewError),
   );
   $("importReview").hidden = !needsReview.length;
   uiText($("importReviewSummary"), () =>
@@ -495,11 +576,15 @@ function renderSummary() {
       t(
         "{0} \u00B7 {1}",
         photo.name,
-        photo.sourceNeedsReview
-          ? t("补传原图需核对")
-          : photo.learnedSuggestion
-            ? t("经验选区需确认")
-            : t("需手动选四角"),
+        photo.previewError
+          ? t("预览失败，点击重试")
+          : photo.boundaryNeedsReview
+            ? t("遮挡边界需确认")
+            : photo.sourceNeedsReview
+              ? t("补传原图需核对")
+              : photo.learnedSuggestion
+                ? t("经验选区需确认")
+                : t("需手动选四角"),
       ),
     );
     control.onclick = () => {
@@ -527,31 +612,38 @@ function renderSummary() {
   uiText($("exportSummary"), () =>
     t(
       "{0} 页待导出 \u00B7 {1} 页{2}",
-      included.length,
-      included.length - processed.length,
+      exporting.length,
+      exporting.filter((p) => !p.processed).length,
       automated ? t("待处理") : t("未确认"),
     ),
   );
   const missing = included.filter((p) => !p.file).length;
   $("recovery").hidden = !missing;
-  const pending = included.length - processed.length;
+  const pending = exporting.filter((p) => !p.processed).length;
+  const exportProcessed = exporting.filter((p) => p.processed);
+  const exportAutomated = exportProcessed.filter((p) => p.automated).length;
+  const exportMissing = exporting.filter((p) => !p.file).length;
   uiText($("exportCheck"), () =>
-    missing
-      ? t("缺少 {0} 张原图，请返回导入重新选择。", missing)
-      : pending && !input("allowOriginal").checked
-        ? t(
-            "还有 {0} 页未确认，请返回核对，或在更多选项中选择按原图导出。",
-            pending,
-          )
-        : pending
-          ? t("{0} 页未确认，将按原图导出。", pending)
-          : automated
-            ? t(
-                "{0} 页已就绪（{1} 页自动校正），可以生成文件。请检查自动裁切结果。",
-                processed.length,
-                automated,
-              )
-            : t("已确认 {0} 页，可以生成文件。", processed.length),
+    select("format").value === "md"
+      ? t(
+          "原文 Markdown 保留逐页识别文字与来源；缺失内容会明确标注，不添加 AI 分析。",
+        )
+      : exportMissing
+        ? t("缺少 {0} 张原图，请返回导入重新选择。", exportMissing)
+        : pending && !input("allowOriginal").checked
+          ? t(
+              "还有 {0} 页未确认，请返回核对，或在更多选项中选择按原图导出。",
+              pending,
+            )
+          : pending
+            ? t("{0} 页未确认，将按原图导出。", pending)
+            : exportAutomated
+              ? t(
+                  "{0} 页已就绪（{1} 页自动校正），可以生成文件。请检查自动裁切结果。",
+                  exportProcessed.length,
+                  exportAutomated,
+                )
+              : t("已确认 {0} 页，可以生成文件。", exportProcessed.length),
   );
   uiText($("add"), () =>
     photos.some((p) => !p.file)
@@ -561,7 +653,9 @@ function renderSummary() {
         : t("从电脑选择"),
   );
   renderStage();
-  $<HTMLButtonElement>("export").disabled = busy || !included.length;
+  $<HTMLButtonElement>("export").disabled = busy || !exporting.length;
+  $<HTMLButtonElement>("groupsExport").disabled =
+    busy || !photos.some((p) => !p.excluded && p.reportId);
   const compact = select("quality").value === "compact";
   uiText($("estimate"), () =>
     t(
@@ -649,15 +743,17 @@ function renderPages() {
           ? t("已排除 \u00B7 原图保留")
           : photo.processed
             ? t("已确认")
-            : photo.sourceNeedsReview
-              ? t("补传原图 \u00B7 请核对选区")
-              : photo.learnedSuggestion
-                ? t("经验选区 \u00B7 待核对")
-                : photo.detection === "suggested"
-                  ? t("自动定位 \u00B7 待确认")
-                  : photo.detection
-                    ? t("需手动选四角")
-                    : t("待校正 / 待确认"),
+            : photo.boundaryNeedsReview
+              ? t("遮挡边界需确认")
+              : photo.sourceNeedsReview
+                ? t("补传原图 \u00B7 请核对选区")
+                : photo.learnedSuggestion
+                  ? t("经验选区 \u00B7 待核对")
+                  : photo.detection === "suggested"
+                    ? t("自动定位 \u00B7 待确认")
+                    : photo.detection
+                      ? t("需手动选四角")
+                      : t("待校正 / 待确认"),
     );
     if (photo.file && !photo.excluded && photo.processed && photo.automated)
       uiText(status, () => t("自动校正 \u00B7 建议检查"));
@@ -756,17 +852,19 @@ function render() {
               ? photo.automated
                 ? t("当前页已自动校正，建议检查完整内容。可微调后人工确认。")
                 : t("当前页已确认。拖动控制点后需重新确认。")
-              : photo.sourceNeedsReview
-                ? t(
-                    "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。",
-                  )
-                : photo.learnedSuggestion
-                  ? t("本地纠正经验给出的参考选区，请核对四角后人工确认。")
-                  : photo.detection === "suggested"
-                    ? t(
-                        "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。",
-                      )
-                    : t("四角已就绪，可拖动微调，然后校正并确认。")),
+              : photo.boundaryNeedsReview
+                ? t("已找到可能被遮挡的边界，请人工核对并确认。")
+                : photo.sourceNeedsReview
+                  ? t(
+                      "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。",
+                    )
+                  : photo.learnedSuggestion
+                    ? t("本地纠正经验给出的参考选区，请核对四角后人工确认。")
+                    : photo.detection === "suggested"
+                      ? t(
+                          "自动建议的四角已就绪，请核对完整内容，可拖动微调，然后校正并确认。",
+                        )
+                      : t("四角已就绪，可拖动微调，然后校正并确认。")),
   );
   $("replaceSource").hidden = !!photo?.file || !photo;
   $("cancelReplacement").hidden = !replacementTargetId;
@@ -815,16 +913,18 @@ function updatePreview() {
     showOriginal
       ? t("原图对比（最长边 1800 px 预览）")
       : photo?.result
-        ? t(
-            "{0} \u00D7 {1} px 预览{2}",
-            photo.resultWidth,
-            photo.resultHeight,
-            photo.processed
-              ? photo.automated
-                ? t(" \u00B7 自动校正，建议检查")
-                : t(" \u00B7 已确认")
-              : t(" \u00B7 尚未确认"),
-          )
+        ? photo.previewKind === "original"
+          ? t("自动定位未确定，显示原图预览；请手动选四角。")
+          : t(
+              "{0} \u00D7 {1} px 预览{2}",
+              photo.resultWidth,
+              photo.resultHeight,
+              photo.processed
+                ? photo.automated
+                  ? t(" \u00B7 自动校正，建议检查")
+                  : t(" \u00B7 已确认")
+                : t(" \u00B7 尚未确认"),
+            )
         : "",
   );
 }
@@ -844,15 +944,92 @@ async function refreshPreview(photo: Photo) {
     if (token !== previewToken || !photos.includes(photo)) return false;
     if (photo.result) URL.revokeObjectURL(photo.result);
     photo.result = URL.createObjectURL(result.blob);
+    photo.previewKind = "corrected";
+    photo.previewError = undefined;
     photo.resultWidth = result.width;
     photo.resultHeight = result.height;
     if (photo.id === currentId) updatePreview();
     return true;
   } catch (error) {
-    if (token === previewToken) message((error as Error).message, true);
+    if (token === previewToken) {
+      photo.previewError = (error as Error).message;
+      message(photo.previewError, true);
+    }
     return false;
   }
 }
+async function preparePagePreview(page: Photo, source?: Blob) {
+  if (!page.file) return false;
+  if (page.corners.length === 4 && !validateCorners(page.corners))
+    return !!(await refreshPreview(page));
+  try {
+    const original = await processImage({
+      blob: source || (await identify(page.file)),
+      rotation: page.rotation,
+      corners: [],
+      brightness: 0,
+      contrast: 0,
+      maxEdge: 1400,
+      kind: "plain",
+    });
+    if (page.result) URL.revokeObjectURL(page.result);
+    page.result = URL.createObjectURL(original.blob);
+    page.resultWidth = original.width;
+    page.resultHeight = original.height;
+    page.previewKind = "original";
+    page.previewError = undefined;
+    return true;
+  } catch (error) {
+    page.previewError = (error as Error).message;
+    return false;
+  }
+}
+
+async function prepareRestoredPages() {
+  // Existing manual points and confirmed pages always take precedence.
+  const pending = photos.filter(
+    (p) =>
+      p.file &&
+      !p.excluded &&
+      !p.processed &&
+      !p.corners.length &&
+      !p.manuallyAdjusted,
+  );
+  for (let i = 0; i < pending.length; i++) {
+    const photo = pending[i];
+    progress(
+      i,
+      pending.length,
+      t("正在准备待核对页 {0} / {1}", i + 1, pending.length),
+    );
+    try {
+      if (input("autoDetect").checked) {
+        const result = await processImage({
+          blob: await identify(photo.file!),
+          rotation: photo.rotation,
+          corners: [],
+          brightness: 0,
+          contrast: 0,
+          maxEdge: 640,
+          kind: "detect",
+        });
+        if (result.detection) {
+          photo.detection = result.detection.status;
+          photo.corners = copy(result.detection.corners);
+          photo.learnedSuggestion =
+            result.detection.source === "local-correction";
+          photo.boundaryNeedsReview =
+            result.detection.source === "partial-edge";
+        }
+      }
+      await preparePagePreview(photo);
+    } catch (error) {
+      photo.previewError = (error as Error).message;
+    }
+  }
+  if (pending.length) await persistProject();
+}
+
 async function openPhoto(id: string) {
   if (busy) return;
   const photo = photos.find((p) => p.id === id);
@@ -907,6 +1084,13 @@ async function openPhoto(id: string) {
     viewport.scrollLeft = 0;
     viewport.setAttribute("aria-busy", "false");
     originalUrl = URL.createObjectURL(result.blob);
+    if (!photo.result && photo.corners.length !== 4) {
+      photo.result = URL.createObjectURL(result.blob);
+      photo.resultWidth = result.width;
+      photo.resultHeight = result.height;
+      photo.previewKind = "original";
+      photo.previewError = undefined;
+    }
     draw();
     updatePreview();
     if (!photo.result && photo.corners.length === 4) void refreshPreview(photo);
@@ -1178,6 +1362,7 @@ async function confirm() {
   clearTimeout(previewTimer);
   setBusy(true);
   message("正在校正当前页…");
+  let learningFailed = false;
   try {
     const success = await refreshPreview(photo);
     if (!success || !photo.result)
@@ -1186,9 +1371,9 @@ async function confirm() {
     photo.automated = false;
     photo.learnedSuggestion = undefined;
     photo.sourceNeedsReview = undefined;
+    photo.boundaryNeedsReview = undefined;
     if (
-      !photo.detection &&
-      histories.has(photo.id) &&
+      photo.manuallyAdjusted &&
       learningEnabled() &&
       bitmap &&
       bitmapPhotoId === photo.id &&
@@ -1213,13 +1398,19 @@ async function confirm() {
             time: Date.now(),
           }),
         );
+        photo.manuallyAdjusted = false;
         renderLearning();
       } catch {
-        message("当前页已确认，但本地纠正经验未能保存。", true);
+        learningFailed = true;
       }
     }
     save();
-    message("当前页已确认。原始照片保留。");
+    message(
+      learningFailed
+        ? "当前页已确认，但本地纠正经验未能保存。"
+        : "当前页已确认。原始照片保留。",
+      learningFailed,
+    );
     const index = photos.indexOf(photo),
       next = photos.slice(index + 1).find((p) => !p.excluded);
     setBusy(false);
@@ -1265,6 +1456,7 @@ async function importFiles(files: File[], targetId?: string) {
   const initialProject = photos.length === 0;
   lastImportError = "";
   const failures: string[] = [];
+  const previewFailures: string[] = [];
   let added = 0,
     restored = 0;
   let usedBytes = photos.reduce((sum, p) => sum + p.size, 0),
@@ -1350,6 +1542,7 @@ async function importFiles(files: File[], targetId?: string) {
       }
       if (automatic && plain.detection) {
         photo.detection = plain.detection.status;
+        photo.boundaryNeedsReview = plain.detection.source === "partial-edge";
         photo.learnedSuggestion = plain.detection.source === "local-correction";
         photo.corners = copy(plain.detection.corners);
       }
@@ -1373,6 +1566,19 @@ async function importFiles(files: File[], targetId?: string) {
         await retainOriginal(other);
         restored++;
       }
+      // Prepare EVERY imported page, without treating a preview failure as
+      // an upload failure or marking a geometric suggestion as confirmed.
+      progress(
+        i,
+        files.length,
+        t("正在生成第 {0} / {1} 张照片的预览", i + 1, files.length),
+      );
+      if (!(await preparePagePreview(photo, blob)))
+        previewFailures.push(photo.name);
+      for (const other of targets.slice(1)) {
+        if (!(await preparePagePreview(other, blob)))
+          previewFailures.push(other.name);
+      }
       await persistProject();
       if (targetId) replacementTargetId = "";
     } catch (error) {
@@ -1390,7 +1596,7 @@ async function importFiles(files: File[], targetId?: string) {
     t("还有 {0} 张原图需要重新选择，已有编辑参数保留。", missing),
   );
   message(
-    `新增 ${added} 张，恢复 ${restored} 张。${failures.length ? "\n未导入：\n" + failures.join("\n") : ""}`,
+    `新增 ${added} 张，恢复 ${restored} 张。${failures.length ? "\n未导入：\n" + failures.join("\n") : ""}${previewFailures.length ? "\n" + t("{0} 张照片已保存但预览未完成，请从待核对列表重试。", previewFailures.length) : ""}`,
     !!failures.length,
   );
   if (added || restored) showStage("review", false);
@@ -1490,6 +1696,9 @@ $("autoFind").onclick = async () => {
       brightness: 0,
       contrast: 0,
       kind: "detect",
+      // This explicit action asks to re-run geometry; uploads still consult
+      // confirmed local examples automatically.
+      examples: [],
     });
     if (!detecting) return;
     if (!result.detection)
@@ -1499,8 +1708,10 @@ $("autoFind").onclick = async () => {
       !validateCorners(result.detection.corners)
     ) {
       history(photo);
+      photo.manuallyAdjusted = false;
       photo.corners = copy(result.detection.corners);
       photo.detection = "suggested";
+      photo.boundaryNeedsReview = result.detection.source === "partial-edge";
       photo.learnedSuggestion = result.detection.source === "local-correction";
       selectedPoint = -1;
       invalidate(photo);
@@ -1664,9 +1875,17 @@ $("showOriginal").onclick = () => {
   showOriginal = true;
   updatePreview();
 };
-input("projectName").oninput = save;
+input("projectName").oninput = () => {
+  if (selectedReportId !== "all")
+    for (const p of exportPhotos()) p.reportTitle = input("projectName").value;
+  save();
+};
 $("suggestName").onclick = () => {
-  updateSuggestedName(true);
+  if (selectedReportId !== "all") {
+    const name = groupName(exportPhotos());
+    for (const p of exportPhotos()) p.reportTitle = name;
+    input("projectName").value = name;
+  } else updateSuggestedName(true);
   save();
   renderSummary();
 };
@@ -1681,23 +1900,31 @@ input("allowOriginal").onchange = () => {
 };
 async function generateReport() {
   if (busy) return false;
-  const included = photos.filter((p) => !p.excluded);
+  const included = exportPhotos();
+  const isMarkdown = select("format").value === "md";
   if (!included.length) {
     message("没有可导出的页面。", true);
     return false;
   }
-  if (included.some((p) => !p.file)) {
+  if (!isMarkdown && included.some((p) => !p.file)) {
     message("缺少原图，请重新选择照片恢复后再导出。", true);
     return false;
   }
-  if (!input("allowOriginal").checked && included.some((p) => !p.processed)) {
+  if (
+    !isMarkdown &&
+    !input("allowOriginal").checked &&
+    included.some((p) => !p.processed)
+  ) {
     message(
       "存在未确认页。请逐页校正并确认，或明确勾选“未确认页按原图导出”。",
       true,
     );
     return false;
   }
-  if (included.some((p) => p.processed && validateCorners(p.corners))) {
+  if (
+    !isMarkdown &&
+    included.some((p) => p.processed && validateCorners(p.corners))
+  ) {
     message("已确认页的四角无效，请重新校正。", true);
     return false;
   }
@@ -1710,14 +1937,18 @@ async function generateReport() {
   const format = select("format").value,
     name = safeName(input("projectName").value);
   try {
-    const blob = await exportReport(included, {
-      format,
-      wide: select("aspect").value === "wide",
-      compact: select("quality").value === "compact",
-      name,
-      signal: exportController.signal,
-      progress,
-    });
+    const blob = isMarkdown
+      ? new Blob([reportSourceMarkdown(name, included, photos)], {
+          type: "text/markdown;charset=utf-8",
+        })
+      : await exportReport(included, {
+          format,
+          wide: select("aspect").value === "wide",
+          compact: select("quality").value === "compact",
+          name,
+          signal: exportController.signal,
+          progress,
+        });
     downloadUrl = URL.createObjectURL(blob);
     const link = $<HTMLAnchorElement>("download");
     link.href = downloadUrl;
@@ -1920,6 +2151,7 @@ async function init() {
       true,
     );
   }
+  await prepareRestoredPages();
   setBusy(false);
   if (photos.length) {
     showStage("review", false);
@@ -1937,19 +2169,31 @@ const phone = phoneTransfer({
     if (photo)
       return {
         reviewReason:
-          photo.corners.length !== 4 || photo.learnedSuggestion
+          photo.corners.length !== 4 ||
+          photo.learnedSuggestion ||
+          photo.boundaryNeedsReview
             ? "已导入，PPT 边界需在电脑上核对，可从待核对列表直接打开。"
             : undefined,
       };
     throw Error(lastImportError || "电脑未能导入此照片，请重试。");
   },
 });
-refreshReports = setupReports(
+const reportsUI = setupReports(
   () => photos,
-  save,
+  () => {
+    save();
+    renderSummary();
+  },
   () => busy,
   setBusy,
+  (id) => {
+    selectedReportId = id;
+    showStage("export");
+    renderSummary();
+  },
 );
+refreshReports = reportsUI;
+prepareReports = reportsUI.prepare;
 setupSettings();
 
 document.addEventListener("languagechange", () => {

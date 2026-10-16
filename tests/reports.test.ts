@@ -50,3 +50,45 @@ test("markdown cites original page order and retains missing content", () => {
   assert.match(md, /未经生成式模型解读/);
   assert.doesNotMatch(md, /第一份报告的重要观点/);
 });
+
+test("原文 Markdown 按组选取完整原文和原始页号，不混入摘要或其他组", async () => {
+  const { reportSourceMarkdown, groupName } = await import("../src/reports.ts");
+  const ps = [
+    photo("a", "别的报告"),
+    photo("b", "机器人方法研究\n报告人：李老师\n短句\n原文完整段落。"),
+    photo("c", ""),
+    photo("d", "第四页原文"),
+  ];
+  const md = reportSourceMarkdown("机器人的报告", [ps[1], ps[3]], ps);
+  assert.match(md, /# 机器人的报告\n\n/);
+  assert.match(md, /来源：第 2 页/);
+  assert.match(md, /来源：第 4 页/);
+  assert.match(md, /短句/);
+  assert.match(md, /原文完整段落/);
+  assert.doesNotMatch(md, /别的报告|主要内容摘录|主题线索/);
+  assert.match(groupName([ps[1]]), /李老师_机器人方法研究/);
+});
+
+test("中间内容页未重复报告人时也能识别下一位报告人的报告", () => {
+  const ps = [
+    photo("a", "共同主题材料研究及测试结果\n报告人：张老师"),
+    photo("b", "共同主题材料研究及测试结果"),
+    photo("c", "共同主题材料研究及测试结果\n报告人：李老师"),
+  ];
+  assert.deepEqual(
+    suggestGroups(ps).map((g) => g.reportId),
+    ["a", "a", "c"],
+  );
+});
+
+test("简短封面上的明确报告人变化也应拆组", () => {
+  const ps = [
+    photo("a", "报告人：张老师"),
+    photo("b", "内容"),
+    photo("c", "报告人：李老师"),
+  ];
+  assert.deepEqual(
+    suggestGroups(ps).map((g) => g.reportId),
+    ["a", "a", "c"],
+  );
+});

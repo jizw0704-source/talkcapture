@@ -115,6 +115,8 @@ test("手机申请、电脑批准、两张照片自动定位并确认导出 PDF"
       path: info.outputPath("desktop-narrow-pairing.png"),
       fullPage: true,
     });
+    await page.locator("#stepImport").click();
+    await page.locator("#phoneOpen").click();
     await page.locator("#phoneStop").click();
     await expect(page.locator("#phoneQr")).toBeHidden();
     await expect(mobile.locator("#connection")).toContainText("无法连接");

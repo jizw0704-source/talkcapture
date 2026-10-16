@@ -1,4 +1,49 @@
 export const english = {
+  整理成可用资料: "into useful files",
+  "自动校正、分报告，导出 PPT、PDF 或原文 Markdown。":
+    "Correct photos, group reports, and export PPT, PDF or source Markdown.",
+  "将报告照片按组整理成 PPT、PDF 与可溯源的原文 Markdown。":
+    "Organize report photos into grouped PPT, PDF and source-linked Markdown text.",
+  "核对名称后导出；可根据标题、报告人与日期重新建议。":
+    "Review the name before exporting. Suggestions use titles, speakers and dates.",
+  "仅发送这份报告的识别文字与来源页码，可能计费。":
+    "Only this report's recognized text and page numbers are sent. Charges may apply.",
+
+  "可选：整项目快速导出": "Optional: quick whole-project export",
+  重新建议名称: "Suggest name again",
+  分报告: "Group",
+  按组导出: "Export",
+  分报告与智能命名: "Group and name reports",
+  "下一步：分报告": "Next: group reports",
+  "下一步：按组导出": "Next: export reports",
+  返回分报告: "Back to groups",
+  选择报告: "Choose report",
+  "整个项目（尚未分报告）": "Whole project (not grouped yet)",
+  "整个项目（全部报告）": "Whole project (all reports)",
+  识别并建议分组: "Recognize and suggest groups",
+  导出这份报告: "Export this report",
+  "下载原文 Markdown": "Download source Markdown",
+  "可选：内容分析": "Optional: content analysis",
+  "来源页：{0}": "Source pages: {0}",
+  "原文 Markdown · MD": "Source Markdown · MD",
+  "按报告人、标题和内容线索建议分组。核对名称与分界后，每组可分别导出 PPT、PDF 或原文 Markdown。":
+    "Suggest groups from speakers, titles and content. Review names and boundaries, then export each report as PPT, PDF or source Markdown.",
+  "文字识别与分组在本机进行；分界和名称是待核对建议。内容分析为可选操作。":
+    "Recognition and grouping run locally. Review suggested names and boundaries. Content analysis is optional.",
+  "原文 Markdown 保留逐页识别文字与来源；缺失内容会明确标注，不添加 AI 分析。":
+    "Source Markdown keeps page text and references, marks missing content and adds no AI analysis.",
+
+  "正在准备待核对页 {0} / {1}": "Preparing pending page {0} / {1}",
+  上传后自动找四角并生成预览: "Find corners and prepare previews after upload",
+  "自动定位未确定，显示原图预览；请手动选四角。":
+    "No reliable corners found. Original preview shown; select the four corners.",
+  "正在生成第 {0} / {1} 张照片的预览": "Preparing preview {0} / {1}",
+  "{0} 张照片已保存但预览未完成，请从待核对列表重试。":
+    "{0} photos were saved but previews are incomplete. Retry from the review list.",
+  "预览失败，点击重试": "Preview failed; open to retry",
+  遮挡边界需确认: "Occluded boundary needs review",
+  "已找到可能被遮挡的边界，请人工核对并确认。":
+    "A potentially occluded boundary was found. Review the corners and confirm.",
   "语言 / Language": "Language",
   "无法读取电脑端模型配置。":
     "Could not read the computer model configuration.",

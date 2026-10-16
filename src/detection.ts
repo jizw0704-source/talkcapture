@@ -3,7 +3,7 @@ import { validateCorners, type Point } from "./geometry.ts";
 export type SlideDetection = {
   status: "suggested" | "not_found" | "ambiguous";
   corners: Point[];
-  source?: "local-correction";
+  source?: "local-correction" | "partial-edge";
 };
 type Line = { a: number; b: number; r: number; votes: number };
 type Edge = { x: number; y: number; angle: number };
@@ -35,10 +35,11 @@ function clockwise(points: Point[]) {
 }
 
 // A geometric candidate detector, not a semantic PPT recognizer or calibrated probability.
-export function detectSlide(
+function detectFrame(
   data: Uint8ClampedArray,
   width: number,
   height: number,
+  allowPartial = false,
 ): SlideDetection {
   const empty: SlideDetection = { status: "not_found", corners: [] };
   if (
@@ -146,6 +147,15 @@ export function detectSlide(
       r: peak.r,
       votes: peak.votes,
     };
+    // Reserve capacity for both axis families: dense slide text must not
+    // crowd out the weaker left/right screen edges.
+    const vertical = Math.abs(line.a) > Math.abs(line.b);
+    if (
+      lines.filter(
+        (existing) => Math.abs(existing.a) > Math.abs(existing.b) === vertical,
+      ).length >= 28
+    )
+      continue;
     if (lines.some((existing) => nearby(existing, line))) continue;
     const support = sampled.filter(
       (p) =>
@@ -178,7 +188,7 @@ export function detectSlide(
     }
     line = { a, b, r: a * mx + b * my, votes: support.length };
     if (!lines.some((existing) => nearby(existing, line))) lines.push(line);
-    if (lines.length === 28) break;
+    if (lines.length === 56) break;
   }
   const pairs: { a: Line; b: Line; votes: number }[] = [];
   for (let i = 0; i < lines.length; i++)
@@ -201,7 +211,13 @@ export function detectSlide(
       pairs.push({ a, b, votes: a.votes + b.votes });
     }
   pairs.sort((a, b) => b.votes - a.votes);
-  pairs.splice(80);
+  const verticalPairs = pairs
+    .filter((pair) => Math.abs(pair.a.a) > Math.abs(pair.a.b))
+    .slice(0, 40);
+  const horizontalPairs = pairs
+    .filter((pair) => Math.abs(pair.a.a) <= Math.abs(pair.a.b))
+    .slice(0, 40);
+  pairs.splice(0, pairs.length, ...verticalPairs, ...horizontalPairs);
   const candidates: { corners: Point[]; score: number }[] = [];
   const sampleGray = (x: number, y: number) =>
     gray[
@@ -264,6 +280,7 @@ export function detectSlide(
       let coverage = 0,
         contrast = 0,
         valid = true;
+      let interruptedEdges = 0;
       for (let k = 0; k < 4; k++) {
         const p = pixel[k],
           q = pixel[(k + 1) % 4],
@@ -299,18 +316,28 @@ export function detectSlide(
           );
         }
         if (supported / samples < 0.55 || longestGap / samples > 0.32) {
-          valid = false;
-          break;
+          // A single interrupted side is allowed only when its remaining
+          // segments still establish a line. Never invent a missing side.
+          interruptedEdges++;
+          if (
+            !allowPartial ||
+            supported / samples < 0.35 ||
+            longestGap / samples > 0.6 ||
+            interruptedEdges > 1
+          ) {
+            valid = false;
+            break;
+          }
         }
         coverage += supported / samples / 4;
         contrast += difference / samples / 4;
       }
-      if (!valid || coverage < 0.78) continue;
+      if (!valid || coverage < (allowPartial ? 0.7 : 0.78)) continue;
       const score =
         coverage * 0.62 +
         Math.sqrt(area) * 0.22 +
         Math.min(1, contrast / 48) * 0.16;
-      if (score < 0.74) continue;
+      if (score < (allowPartial ? 0.7 : 0.74)) continue;
       const duplicate = candidates.find((existing) =>
         existing.corners.every((p, k) => distance(p, corners[k]) < 0.04),
       );
@@ -331,5 +358,19 @@ export function detectSlide(
     if (distance(center(best.corners), center(other.corners)) > 0.18)
       return { status: "ambiguous", corners: [] };
   }
-  return { status: "suggested", corners: best.corners };
+  return {
+    status: "suggested",
+    corners: best.corners,
+    ...(allowPartial ? { source: "partial-edge" as const } : {}),
+  };
+}
+
+export function detectSlide(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): SlideDetection {
+  const complete = detectFrame(data, width, height);
+  if (complete.status !== "not_found") return complete;
+  return detectFrame(data, width, height, true);
 }

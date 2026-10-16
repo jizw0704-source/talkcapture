@@ -78,12 +78,16 @@ test("人工确认记住本机构图，后续经验建议需要核对，可关�
       box.x + rect.x + x * rect.w,
       box.y + rect.y + y * rect.h,
     );
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 1 / 1");
+  await page.reload();
+  await expect(page.locator("#canvasEmpty")).toBeHidden();
   await page.locator("#confirm").click();
   await expect(page.locator("#learningStatus")).toContainText("已记住 1 条");
   await importScene(page, buffer, "现场02.jpg");
   await expect(page.locator(".page-row")).toHaveCount(2);
   await page.locator(".page-open").nth(1).click();
   await expect(page.locator("#cornerPrompt")).toContainText("本地纠正经验");
+  await revealControl(page, "autoOrganize");
   await page.locator("#autoOrganize").click();
   await expect(page.locator("#automaticIssues")).toContainText("经验选区");
   await expect(page.locator("#download")).toBeHidden();
