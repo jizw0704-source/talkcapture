@@ -6,6 +6,7 @@ export function setupImportGallery(
   getPhotos: () => Photo[],
   isBusy: () => boolean,
   review: (id: string) => void,
+  setExcluded: (id: string, excluded: boolean) => void,
 ) {
   const root = document.getElementById("importGallery")!,
     grid = document.getElementById("importGalleryGrid")!,
@@ -22,6 +23,8 @@ export function setupImportGallery(
   const cards = new Map<
     string,
     {
+      root: HTMLElement;
+      remove: HTMLButtonElement;
       button: HTMLButtonElement;
       image: HTMLImageElement;
       title: HTMLElement;
@@ -45,6 +48,47 @@ export function setupImportGallery(
     activeSource = "",
     activeRotation = -1,
     ownedUrl = "";
+  const showRemoved = document.getElementById(
+    "galleryShowRemoved",
+  ) as HTMLInputElement;
+  const removedTools = document.getElementById("galleryRemovedTools")!;
+  const undo = document.getElementById(
+    "galleryUndoRemove",
+  ) as HTMLButtonElement;
+  const removalStatus = document.getElementById("galleryRemovalStatus")!;
+  const removeSelected = document.getElementById(
+    "galleryRemove",
+  ) as HTMLButtonElement;
+  let lastRemoved = "";
+  const visiblePhotos = () =>
+    getPhotos().filter((p) => showRemoved.checked || !p.excluded);
+  function changeExclusion(id: string, excluded: boolean) {
+    if (isBusy()) return;
+    const photo = getPhotos().find((p) => p.id === id);
+    if (!photo) return;
+    if (dialog.open) dialog.close();
+    lastRemoved = excluded ? id : "";
+    uiText(removalStatus, () =>
+      t(
+        excluded
+          ? "已移除：{0}。原图保留，可撤销或显示已移除照片恢复。"
+          : "已恢复：{0}。",
+        photo.name,
+      ),
+    );
+    setExcluded(id, excluded);
+    render();
+    if (excluded) undo.focus();
+    else cards.get(id)?.button.focus();
+  }
+  undo.onclick = () => {
+    if (lastRemoved) changeExclusion(lastRemoved, false);
+  };
+  showRemoved.onchange = () => render();
+  removeSelected.onclick = () => {
+    const photo = getPhotos().find((p) => p.id === selected);
+    if (photo) changeExclusion(photo.id, !photo.excluded);
+  };
   const state = (p: Photo) => t(photoStatus(p));
   const clearImage = () => {
     image.hidden = true;
@@ -54,7 +98,7 @@ export function setupImportGallery(
   };
   async function display() {
     if (!dialog.open) return;
-    const photos = getPhotos(),
+    const photos = visiblePhotos(),
       index = photos.findIndex((p) => p.id === selected),
       p = photos[index];
     if (!p) {
@@ -62,11 +106,18 @@ export function setupImportGallery(
       return;
     }
     uiText(title, () =>
-      t("第 {0} / {1} 张 · {2}", index + 1, photos.length, p.name),
+      t(
+        "第 {0} / {1} 张 · {2}",
+        getPhotos().indexOf(p) + 1,
+        getPhotos().length,
+        p.name,
+      ),
     );
     previous.disabled = index <= 0;
     next.disabled = index >= photos.length - 1;
     go.disabled = isBusy() || !p.file;
+    removeSelected.disabled = isBusy();
+    uiText(removeSelected, () => t(p.excluded ? "恢复照片" : "移除照片"));
     uiText(status, () => state(p));
     const source = p.thumb || "";
     if (
@@ -138,7 +189,7 @@ export function setupImportGallery(
     void display();
   }
   const move = (delta: number) => {
-    const photos = getPhotos(),
+    const photos = visiblePhotos(),
       index = photos.findIndex((p) => p.id === selected);
     if (photos[index + delta]) {
       selected = photos[index + delta].id;
@@ -170,18 +221,37 @@ export function setupImportGallery(
   };
   function render() {
     renderToggle();
-    const photos = getPhotos();
-    root.hidden = !photos.length;
-    uiText(count, () => t("共 {0} 张 · 按当前页序展示", photos.length));
+    const allPhotos = getPhotos();
+    const photos = visiblePhotos();
+    root.hidden = !allPhotos.length;
+    document.getElementById("galleryEmpty")!.hidden = !!photos.length;
+    const removed = allPhotos.filter((p) => p.excluded).length;
+    removedTools.hidden = !removed;
+    undo.hidden =
+      !lastRemoved ||
+      !allPhotos.some((p) => p.id === lastRemoved && p.excluded);
+    undo.disabled = isBusy();
+    uiText(count, () =>
+      removed
+        ? t("共 {0} 张 · 已移除 {1} 张", allPhotos.length, removed)
+        : t("共 {0} 张 · 按当前页序展示", photos.length),
+    );
     const ids = new Set(photos.map((p) => p.id));
     for (const [id, card] of cards)
       if (!ids.has(id)) {
-        card.button.remove();
+        card.root.remove();
         cards.delete(id);
       }
     photos.forEach((p, index) => {
       let card = cards.get(p.id);
       if (!card) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "gallery-item";
+        const remove = document.createElement("button");
+        remove.className = "gallery-remove quiet";
+        remove.type = "button";
+        remove.dataset.galleryControl = "";
+        remove.onclick = () => changeExclusion(p.id, !p.excluded);
         const button = document.createElement("button"),
           img = document.createElement("img"),
           title = document.createElement("span"),
@@ -194,7 +264,8 @@ export function setupImportGallery(
         img.decoding = "async";
         button.append(img, title, status);
         button.onclick = () => open(p.id, button);
-        card = { button, image: img, title, status };
+        wrapper.append(button, remove);
+        card = { root: wrapper, remove, button, image: img, title, status };
         cards.set(p.id, card);
       }
       const source = p.thumb || "";
@@ -205,14 +276,19 @@ export function setupImportGallery(
         card.image.removeAttribute("src");
         card.image.style.visibility = "hidden";
       }
-      uiText(card.title, () => `${index + 1}. ${p.name}`);
+      const pageNumber = allPhotos.indexOf(p) + 1;
+      card.remove.disabled = isBusy();
+      uiText(card.remove, () => t(p.excluded ? "恢复照片" : "移除照片"));
+      uiAttr(card.remove, "aria-label", () =>
+        t(p.excluded ? "恢复照片：{0}" : "移除照片：{0}", p.name),
+      );
+      uiText(card.title, () => `${pageNumber}. ${p.name}`);
       uiText(card.status, () => state(p));
       uiAttr(card.button, "aria-label", () =>
-        t("查看第 {0} 张原图：{1}", index + 1, p.name),
+        t("查看第 {0} 张原图：{1}", pageNumber, p.name),
       );
       const current = grid.children[index];
-      if (current !== card.button)
-        grid.insertBefore(card.button, current || null);
+      if (current !== card.root) grid.insertBefore(card.root, current || null);
     });
     if (dialog.open) void display();
   }

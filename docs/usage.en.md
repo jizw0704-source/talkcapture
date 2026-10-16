@@ -133,3 +133,9 @@ Export this report and Export source Markdown both open the same export screen; 
 Each report shows its first photo as a representative thumbnail, labeled as a corrected or original preview, with an unavailable state when needed. Names, page counts and source pages remain visible. Review grouping expands page assignments and splitting controls; page text opens separately. More actions contains name suggestions, merging into the previous report and optional content analysis. Report and source Markdown export shortcuts remain available.
 
 Settings presents language, theme and text size first. Model configuration starts collapsed; expand it to configure or test MiniMax. Existing transmission and key-storage boundaries remain. Browsing and disclosures do not change photos, groups, titles, ordering, crops or confirmation states.
+
+## Quickly remove an accidental selection
+
+Remove photo is available below each gallery photo and in the full-image viewer. It hides the photo from the default gallery and export scope using the existing exclusion state. Undo removal restores the last removal in this session. Show removed photos allows restoring any excluded photo, including after refreshing. Other source page numbers, relative order, groups, crops and confirmation states remain intact. Editing is disabled while processing.
+
+This reversible action does not delete original files or cached originals, and excluded photos still count toward project capacity. Regenerate existing exports after changing the included photos.

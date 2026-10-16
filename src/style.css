@@ -1868,3 +1868,33 @@ body[data-empty="false"] .dropzone small {
     flex: 1 1 auto;
   }
 }
+
+.gallery-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gallery-item .gallery-card {
+  width: 100%;
+  flex: 1;
+}
+.gallery-remove {
+  align-self: end;
+  min-height: 44px;
+  font-size: 0.9286rem;
+}
+.gallery-removal-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.gallery-removal-tools label:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+#galleryRemovalStatus:empty {
+  display: none;
+}

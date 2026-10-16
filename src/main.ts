@@ -2226,6 +2226,14 @@ renderGallery = setupImportGallery(
       $("currentName").focus();
     });
   },
+  (id, excluded) => {
+    if (busy) return;
+    const photo = photos.find((p) => p.id === id);
+    if (!photo) return;
+    photo.excluded = excluded;
+    save();
+    render();
+  },
 );
 setupSettings();
 

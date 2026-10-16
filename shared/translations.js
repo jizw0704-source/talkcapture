@@ -1,4 +1,16 @@
 export const english = {
+  "没有待整理照片，可显示已移除照片并恢复。":
+    "No active photos. Show removed photos to restore them.",
+  移除照片: "Remove photo",
+  恢复照片: "Restore photo",
+  撤销移除: "Undo removal",
+  显示已移除照片: "Show removed photos",
+  "移除照片：{0}": "Remove photo: {0}",
+  "恢复照片：{0}": "Restore photo: {0}",
+  "共 {0} 张 · 已移除 {1} 张": "{0} photos · {1} removed",
+  "已移除：{0}。原图保留，可撤销或显示已移除照片恢复。":
+    "Removed: {0}. Original kept. Undo or show removed photos to restore.",
+  "已恢复：{0}。": "Restored: {0}.",
   更多操作: "More actions",
   "逐页识别文字 · 待补充": "Page text · missing",
   首张校正预览: "First page · corrected",
