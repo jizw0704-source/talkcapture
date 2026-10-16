@@ -1,4 +1,5 @@
 import { t, uiText, uiAttr } from "../shared/i18n.js";
+import { photoStatus } from "./photo-status";
 import type { Photo } from "./types";
 import { processImage } from "./processor";
 export function setupImportGallery(
@@ -44,16 +45,7 @@ export function setupImportGallery(
     activeSource = "",
     activeRotation = -1,
     ownedUrl = "";
-  const state = (p: Photo) =>
-    !p.file
-      ? t("原图缺失")
-      : p.excluded
-        ? t("已排除")
-        : p.previewError
-          ? t("预览失败，请核对")
-          : p.processed
-            ? t("已确认")
-            : t("待核对");
+  const state = (p: Photo) => t(photoStatus(p));
   const clearImage = () => {
     image.hidden = true;
     image.removeAttribute("src");

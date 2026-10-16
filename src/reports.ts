@@ -1,4 +1,5 @@
 import type { Photo } from "./types.ts";
+import { t } from "../shared/i18n.js";
 import {
   groupingEvidence,
   sameInstitution,
@@ -58,22 +59,62 @@ export function presenter(text: string) {
 }
 const presenterKey = (name: string) =>
   name.toLowerCase().replace(/[\s.·•]/g, "");
+export function titleCandidate(photo: Photo | undefined) {
+  if (!photo) return "";
+  const lines = (photo.reading?.text || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const candidates = lines
+    .slice(0, 12)
+    .map((text, index) => {
+      const wordmark =
+        /^[a-z][a-z\d&.-]{2,24}$/i.test(text) ||
+        (/^[A-Z\s&.-]{4,35}$/.test(text) && text.split(/\s+/).length <= 3) ||
+        (/^[A-Za-z\s|&.-]+$/.test(text) && text.includes("|"));
+      const identity =
+        /(?:有限公司|大学|研究院|研究所|实验室)$/.test(text) ||
+        /^[\u4e00-\u9fff]{2,8}(?:光电|光伏|科技)(?:科研)?$/.test(text);
+      const boilerplate =
+        /论坛|会议|大会|峰会|conference|symposium|copyright|www\.|https?:|^\d{4}[年/.-]\d{1,2}(?:[月/.-]\d{1,2})?日?$|^[\d\s.%-]+$|^(报告人|报告者|主讲|汇报|speaker|presenter|presented by)/i.test(
+          text,
+        );
+      if (
+        wordmark ||
+        identity ||
+        boilerplate ||
+        presenter(text) ||
+        text.length < 6 ||
+        text.length > 100
+      )
+        return { text: "", score: -1 };
+      const chinese = /[\u4e00-\u9fff]/.test(text);
+      if (!chinese && (text.length < 12 || text.split(/\s+/).length < 2))
+        return { text: "", score: -1 };
+      const line = photo.reading?.lines?.find((l) => l.text.trim() === text);
+      const sizes =
+        photo.reading?.lines
+          ?.map((l) => l.height || 0)
+          .filter((n) => n > 0)
+          .sort((a, b) => a - b) || [];
+      const median = sizes[Math.floor(sizes.length / 2)] || 0;
+      const prominent = median > 0 && (line?.height || 0) > median * 1.3;
+      return {
+        text,
+        score:
+          30 -
+          index * 3 +
+          (prominent ? 12 : 0) -
+          (text.length > 60 ? 12 : 0) -
+          (/[。；;]/.test(text) ? 12 : 0),
+      };
+    })
+    .filter((c) => c.score >= 0)
+    .sort((a, b) => b.score - a.score);
+  return candidates[0]?.text || "";
+}
 export function titleOf(photo: Photo) {
-  return (
-    photo.reading?.text
-      .split("\n")
-      .map((s) => s.trim())
-      .find(
-        (s) =>
-          s.length >= 4 &&
-          s.length <= 100 &&
-          !/^\d+$/.test(s) &&
-          !presenter(s) &&
-          !/^(报告人|主讲人|演讲者|汇报人|presented by|speaker)\s*[:：]/i.test(
-            s,
-          ),
-      ) || photo.name.replace(/\.[^.]+$/, "")
-  );
+  return titleCandidate(photo) || photo.name.replace(/\.[^.]+$/, "");
 }
 export function suggestGroups(photos: Photo[]) {
   let id = "",
@@ -174,7 +215,7 @@ export function speakerOf(photos: Photo[]) {
   );
 }
 export function groupName(photos: Photo[]) {
-  const title = photos.map(titleOf).find(Boolean) || "未命名报告";
+  const title = titleCandidate(photos[0]) || t("名称待核对");
   const speaker = speakerOf(photos);
   const captured = photos.find((p) => p.captured)?.captured;
   const date = captured ? new Date(captured) : undefined;

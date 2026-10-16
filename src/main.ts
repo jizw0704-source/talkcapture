@@ -1,4 +1,5 @@
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
+import { photoStatus } from "./photo-status";
 import { setupSettings } from "./settings";
 import { setupReports } from "./report-ui";
 import { setupImportGallery } from "./import-gallery";
@@ -565,6 +566,15 @@ function renderSummary() {
   select("aspect").closest("label")!.hidden = markdown;
   select("quality").closest("label")!.hidden = markdown;
   $("exportOptions").hidden = markdown;
+  uiText($("outputDescription"), () =>
+    markdown
+      ? t(
+          "原文 Markdown：逐页识别文字与来源页码，不包含 AI 总结；图表和公式请结合原图核对。",
+        )
+      : t(
+          "PPT / PDF：校正照片组成的图片版文件，保留画面内容，不恢复可编辑文字或图表。",
+        ),
+  );
   const needsReview = photos.filter(
     (p) =>
       p.file &&
@@ -624,8 +634,8 @@ function renderSummary() {
     t(
       "{0} 页待导出 \u00B7 {1} 页{2}",
       exporting.length,
-      exporting.filter((p) => !p.processed).length,
-      automated ? t("待处理") : t("未确认"),
+      exporting.filter((p) => !p.processed || p.automated).length,
+      t("待核对"),
     ),
   );
   const missing = included.filter((p) => !p.file).length;
@@ -749,27 +759,7 @@ function renderPages() {
     title.className = "photo-name";
     uiText(title, () => `${index + 1}. ${photo.name}`);
     status.className = `page-caption${!photo.file ? " missing" : ""}`;
-    uiText(status, () =>
-      !photo.file
-        ? t("请重新选择原图")
-        : photo.excluded
-          ? t("已排除 \u00B7 原图保留")
-          : photo.processed
-            ? t("已确认")
-            : photo.boundaryNeedsReview
-              ? t("边界建议需确认")
-              : photo.sourceNeedsReview
-                ? t("补传原图 \u00B7 请核对选区")
-                : photo.learnedSuggestion
-                  ? t("经验选区 \u00B7 待核对")
-                  : photo.detection === "suggested"
-                    ? t("自动定位 \u00B7 待确认")
-                    : photo.detection
-                      ? t("需手动选四角")
-                      : t("待校正 / 待确认"),
-    );
-    if (photo.file && !photo.excluded && photo.processed && photo.automated)
-      uiText(status, () => t("自动校正 \u00B7 建议检查"));
+    uiText(status, () => t(photoStatus(photo)));
     text.append(title, status);
     open.append(text);
     top.append(label, open);
@@ -863,7 +853,7 @@ function render() {
           : error ||
             (photo.processed
               ? photo.automated
-                ? t("当前页已自动校正，建议检查完整内容。可微调后人工确认。")
+                ? t("当前页已自动校正，仍待人工核对。可微调后确认。")
                 : t("当前页已确认。拖动控制点后需重新确认。")
               : photo.boundaryNeedsReview
                 ? t("已找到边界建议，请人工核对并确认。")
@@ -934,9 +924,9 @@ function updatePreview() {
               photo.resultHeight,
               photo.processed
                 ? photo.automated
-                  ? t(" \u00B7 自动校正，建议检查")
+                  ? t(" \u00B7 自动校正，待核对")
                   : t(" \u00B7 已确认")
-                : t(" \u00B7 尚未确认"),
+                : t(" \u00B7 待核对"),
             )
         : "",
   );

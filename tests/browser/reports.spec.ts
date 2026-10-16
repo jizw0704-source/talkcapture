@@ -32,6 +32,10 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
   });
   await page.locator("#analyzeReports").click();
   await expect(page.locator("#reportStatus")).toContainText("已整理为 2 组");
+  await expect(page.locator("#analyzeReports")).toHaveText("补充识别文字");
+  await expect(page.locator("#reportWorkspace")).toContainText(
+    "已有分组和名称会保留",
+  );
   await expect(page.locator(".report-group")).toHaveCount(2);
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "下载原文 Markdown" }).nth(1).click();

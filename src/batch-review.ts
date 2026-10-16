@@ -1,4 +1,5 @@
 import { t, uiText, uiAttr, getLanguage } from "../shared/i18n.js";
+import { photoStatus } from "./photo-status";
 import type { Photo } from "./types";
 import { looksSimilar, type Fingerprint } from "./duplicates";
 import { validateCorners } from "./geometry";
@@ -161,17 +162,7 @@ export function setupBatchReview(
         preview,
         text("h3", () => t("第 {0} 页 · {1}", index + 1, p.name)),
       );
-      card.append(
-        text("p", () =>
-          p.excluded
-            ? t("已排除")
-            : !p.file
-              ? t("原图缺失")
-              : p.processed && !p.automated
-                ? t("已确认")
-                : t("需要核对"),
-        ),
-      );
+      card.append(text("p", () => t(photoStatus(p))));
       card.append(
         text("p", () =>
           src.kind === "corrected"

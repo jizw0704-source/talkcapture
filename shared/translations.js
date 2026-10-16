@@ -1,4 +1,30 @@
 export const english = {
+  待核对: "Needs review",
+  "当前页已自动校正，仍待人工核对。可微调后确认。":
+    "This page was corrected automatically and still needs your review. Adjust if needed, then confirm.",
+  " · 自动校正，待核对": " · Automatically corrected; needs review",
+  " · 待核对": " · Needs review",
+  识别文字并建议分组: "Recognize text and suggest groups",
+  识别并分组新增照片: "Recognize and group new photos",
+  补充识别文字: "Fill in recognized text",
+  "已有分组和名称会保留；仅为未分组照片建议分组。":
+    "Existing groups and names are preserved. Only ungrouped photos receive group suggestions.",
+  "PPT / PDF：校正照片组成的图片版文件，保留画面内容，不恢复可编辑文字或图表。":
+    "PPT / PDF: image-based files made from corrected photos. Text and charts are not restored as editable objects.",
+  "原文 Markdown：逐页识别文字与来源页码，不包含 AI 总结；图表和公式请结合原图核对。":
+    "Source Markdown: recognized page text and source page numbers, without AI summaries. Check charts and equations against the originals.",
+  "核对名称后导出；重新建议名称需点击下方按钮，不会自动更改已有名称。":
+    "Review the name before export. Use the button below to suggest a new name; existing names are not changed automatically.",
+  名称待核对: "Name needs review",
+  "需处理 · 原图缺失，请重新选择原图":
+    "Needs attention · original missing; select it again",
+  "需处理 · 预览失败，可重试":
+    "Needs attention · preview failed; retry available",
+  "待核对 · 自动校正": "Needs review · automatically corrected",
+  "待核对 · 补传原图": "Needs review · replacement original",
+  "待核对 · 本机经验选区": "Needs review · local correction suggestion",
+  "待核对 · 自动定位": "Needs review · automatic corners",
+  "待核对 · 需手动选四角": "Needs review · select four corners manually",
   收起照片墙: "Collapse photos",
   展开照片墙: "Show photos",
   已上传照片: "Uploaded photos",

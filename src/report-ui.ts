@@ -58,6 +58,13 @@ export function setupReports(
   function render() {
     root.hidden = !eligible().length;
     run.disabled = running || isBusy();
+    uiText(run, () =>
+      eligible().some((p) => p.reportId)
+        ? eligible().some((p) => !p.reportId)
+          ? t("识别并分组新增照片")
+          : t("补充识别文字")
+        : t("识别文字并建议分组"),
+    );
     const view = JSON.stringify([
       running,
       isBusy(),

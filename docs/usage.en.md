@@ -111,3 +111,11 @@ When photos exist, the import screen shows every record in the current page orde
 Additional uploads update the wall incrementally while browsing the import screen, retaining existing cards, the open photo and focus. The first import keeps the existing transition to review; return through the brand link or Import photos. Browsing does not change ordering, report assignments, crops or exclusions.
 
 Collapse photos hides the thumbnails while retaining the photo count. Show photos restores them. The state is retained during step navigation and additional uploads in the current page session; refreshing expands the wall by default. Collapsing does not remove photos or affect uploads, groups or exports.
+
+## Grouping actions, name suggestions and review states
+
+The grouping action changes with the project: Recognize text and suggest groups for an ungrouped project; Recognize and group new photos when some pages remain ungrouped; Fill in recognized text when all pages already have a group. Existing assignments and names are retained. These actions do not regroup the whole project.
+
+Name suggestions prefer a title on the first report photo, filtering wordmarks, institutions, dates and conference information, with text geometry as supporting evidence. Missing titles are marked Name needs review. Existing names are never replaced by an upgrade or navigation; use the explicit name suggestion action to apply the updated heuristic.
+
+The photo wall, page list and batch overview share Needs review, Confirmed, Needs attention and Excluded states, with details appended. Automatic correction remains Needs review rather than human confirmation. Cache status is separate. Image-based PPT/PDF exports do not restore editable text or charts. Source Markdown retains recognized text and source pages without AI summaries; charts and equations require the original images. Optional MiniMax interpretation remains separate.

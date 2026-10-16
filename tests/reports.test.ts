@@ -153,3 +153,67 @@ test("前一报告缺报告人时保留明确新封面与主题变化的边界",
     ["a", "b"],
   );
 });
+
+test("名称建议跳过 Logo、机构、日期与会议名，不把它们当报告题目", async () => {
+  const { titleCandidate, groupName } = await import("../src/reports.ts");
+  const p = photo(
+    "cover",
+    "GsoLA\n太空光伏电池及组件IV测试关键问题与解决方案\n示例电能科技有限公司\n报告人：陈老师\n第二届技术创新论坛\n2026年4月9日",
+  );
+  assert.equal(titleCandidate(p), "太空光伏电池及组件IV测试关键问题与解决方案");
+  assert.match(groupName([p]), /^陈老师_太空光伏/);
+  const original = structuredClone(p);
+  groupName([p]);
+  assert.deepEqual(p, original);
+});
+test("只有字标、机构或空白时明确标记名称待核对，不借用后续内容页冒充报告标题", async () => {
+  const { groupName } = await import("../src/reports.ts");
+  assert.match(
+    groupName([
+      photo("x", "GCL PEROVSKITE\n示例科技有限公司\n2026年4月9日"),
+      photo("y", "这是后续一页的章节标题"),
+    ]),
+    /名称待核对/,
+  );
+  assert.match(groupName([]), /名称待核对/);
+});
+test("英文实际标题保留，几何信息可以优先突出真正标题", async () => {
+  const { titleCandidate } = await import("../src/reports.ts");
+  assert.equal(
+    titleCandidate(
+      photo(
+        "x",
+        "GSOLA\nSolar cell testing and applications\nSpeaker: Alice Wang",
+      ),
+    ),
+    "Solar cell testing and applications",
+  );
+});
+
+test("全大写的长英文标题与较大的封面标题仍可用于命名", async () => {
+  const { titleCandidate } = await import("../src/reports.ts");
+  assert.equal(
+    titleCandidate(photo("x", "SOLAR CELL TESTING AND APPLICATIONS")),
+    "SOLAR CELL TESTING AND APPLICATIONS",
+  );
+  const p = photo("x", "一个普通的栏目说明\n真正的报告标题和研究进展");
+  p.reading!.lines = [
+    { text: "一个普通的栏目说明", confidence: 1, height: 0.02 },
+    { text: "真正的报告标题和研究进展", confidence: 1, height: 0.06 },
+    { text: "示例大学", confidence: 1, height: 0.02 },
+  ];
+  assert.equal(titleCandidate(p), "真正的报告标题和研究进展");
+});
+
+test("年份区间开头的报告标题不会误当拍摄日期，字标 OCR 竖线不当标题", async () => {
+  const { titleCandidate } = await import("../src/reports.ts");
+  assert.equal(
+    titleCandidate(
+      photo(
+        "x",
+        "示例光伏\nALPHA SO|ar\n2030-2035：低轨卫星产业发展与技术机遇\n2026年4月9日",
+      ),
+    ),
+    "2030-2035：低轨卫星产业发展与技术机遇",
+  );
+});

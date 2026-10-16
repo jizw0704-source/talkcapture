@@ -293,9 +293,10 @@
             PPT、PDF 或原文 Markdown。
           </p>
           <div class="report-actions">
-            <button id="analyzeReports">识别并建议分组</button
+            <button id="analyzeReports">识别文字并建议分组</button
             ><button id="cancelAnalysis" hidden>取消识别</button>
           </div>
+          <p class="hint">已有分组和名称会保留；仅为未分组照片建议分组。</p>
           <p id="reportStatus" role="status" class="hint">
             文字识别与分组在本机进行；分界和名称是待核对建议。内容分析为可选操作。
           </p>
@@ -552,7 +553,13 @@
           <p id="downloadInfo" class="muted"></p>
           <a id="download" class="download" hidden>下载文件</a>
         </div>
-        <p class="hint">核对名称后导出；可根据标题、报告人与日期重新建议。</p>
+        <p id="outputDescription" class="hint">
+          PPT /
+          PDF：校正照片组成的图片版文件，保留画面内容，不恢复可编辑文字或图表。
+        </p>
+        <p class="hint">
+          核对名称后导出；重新建议名称需点击下方按钮，不会自动更改已有名称。
+        </p>
         <button id="suggestName">重新建议报告名称</button>
         <div class="export-fields">
           <label class="report-name"
