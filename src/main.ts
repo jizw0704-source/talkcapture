@@ -1,4 +1,6 @@
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
+import { collectReviewIssues } from "./review-issues";
+import { setReportName, suggestReportNameForGroup } from "./report-name";
 import { photoStatus } from "./photo-status";
 import { setupSettings } from "./settings";
 import { setupReports } from "./report-ui";
@@ -6,7 +8,7 @@ import { setupImportGallery } from "./import-gallery";
 let renderGallery = Object.assign(() => {}, { isOpen: (): boolean => false });
 import { setupBatchReview } from "./batch-review";
 let renderBatch = () => {};
-import { reportGroups, reportSourceMarkdown, groupName } from "./reports";
+import { reportGroups, reportSourceMarkdown } from "./reports";
 let refreshReports = () => {};
 let prepareReports = async () => {};
 let selectedReportId = "all";
@@ -411,6 +413,7 @@ function setBusy(value: boolean) {
     render();
   }
 }
+let issueView = "";
 function renderAutomatic() {
   $("automaticPanel").hidden =
     !photos.length ||
@@ -445,20 +448,31 @@ function renderAutomatic() {
       ? t("{0} 页保留 \u00B7 {1} 页待检查", included.length, pending.length)
       : t("{0} 页保留 \u00B7 {1} 页已就绪", included.length, ready),
   );
-  $("automaticReview").hidden = !pending.length;
-  uiText($("automaticReviewTitle"), () => t("需要检查 {0} 页", pending.length));
+  const issues = collectReviewIssues(photos, automaticIssues);
+  $("automaticReview").hidden = !photos.length;
+  uiText($("importReviewSummary"), () =>
+    issues.length
+      ? t("核对与问题 · {0} 页需处理", issues.length)
+      : t("核对与问题 · 当前无异常"),
+  );
+  const key = JSON.stringify([busy, issues, photos.map((p) => [p.id, p.name])]);
+  if (key === issueView) return;
+  issueView = key;
   const list = $("automaticIssues");
   list.replaceChildren();
-  for (const issue of pending) {
-    const index = photos.findIndex((p) => p.id === issue.photoId);
-    const item = document.createElement("li");
-    const open = button(`${index + 1}. ${photos[index].name}`, () => {
-      showStage("review");
-      void openPhoto(issue.photoId);
+  for (const issue of issues) {
+    const index = photos.findIndex((p) => p.id === issue.photoId),
+      item = document.createElement("li");
+    const open = button(index + 1 + ". " + photos[index].name, () => {
+      showStage("review", false);
+      void openPhoto(issue.photoId).then(() => {
+        $("currentName").tabIndex = -1;
+        $("currentName").focus();
+      });
     });
     open.disabled = busy;
     const reason = document.createElement("span");
-    uiText(reason, () => issue.reason);
+    uiText(reason, () => issue.reasons.map((r) => t(r)).join("；"));
     open.append(reason);
     item.append(open);
     list.append(item);
@@ -534,6 +548,7 @@ async function runAutomatic() {
       message(
         `自动整理已暂停：${automaticIssues.length} 页需要检查。其余页面已保留，未生成缺页文件。`,
       );
+      $<HTMLDetailsElement>("automaticReview").open = true;
       $("automaticReviewTitle").focus();
       return;
     }
@@ -575,46 +590,6 @@ function renderSummary() {
           "PPT / PDF：校正照片组成的图片版文件，保留画面内容，不恢复可编辑文字或图表。",
         ),
   );
-  const needsReview = photos.filter(
-    (p) =>
-      p.file &&
-      !p.excluded &&
-      !p.processed &&
-      (p.corners.length !== 4 ||
-        p.learnedSuggestion ||
-        p.sourceNeedsReview ||
-        p.boundaryNeedsReview ||
-        p.previewError),
-  );
-  $("importReview").hidden = !needsReview.length;
-  uiText($("importReviewSummary"), () =>
-    t("{0} 张边界待核对 \u00B7 点击直接定位照片", needsReview.length),
-  );
-  $("importReviewList").replaceChildren();
-  for (const photo of needsReview) {
-    const control = document.createElement("button");
-    uiText(control, () =>
-      t(
-        "{0} \u00B7 {1}",
-        photo.name,
-        photo.previewError
-          ? t("预览失败，点击重试")
-          : photo.boundaryNeedsReview
-            ? t("边界建议需确认")
-            : photo.sourceNeedsReview
-              ? t("补传原图需核对")
-              : photo.learnedSuggestion
-                ? t("经验选区需确认")
-                : t("需手动选四角"),
-      ),
-    );
-    control.onclick = () => {
-      showStage("review", false);
-      void openPhoto(photo.id);
-    };
-    control.disabled = busy;
-    $("importReviewList").append(control);
-  }
   const included = photos.filter((p) => !p.excluded),
     processed = included.filter((p) => p.processed);
   const automated = processed.filter((p) => p.automated).length;
@@ -1892,16 +1867,31 @@ $("showOriginal").onclick = () => {
 };
 input("projectName").oninput = () => {
   if (selectedReportId !== "all")
-    for (const p of exportPhotos()) p.reportTitle = input("projectName").value;
+    setReportName(photos, selectedReportId, input("projectName").value);
+  refreshReports();
+  revokeDownload();
   save();
+  renderSummary();
+};
+input("projectName").onchange = () => {
+  if (selectedReportId === "all") return;
+  input("projectName").value = setReportName(
+    photos,
+    selectedReportId,
+    input("projectName").value,
+  );
+  save();
+  refreshReports();
+  renderSummary();
 };
 $("suggestName").onclick = () => {
   if (selectedReportId !== "all") {
-    const name = groupName(exportPhotos());
-    for (const p of exportPhotos()) p.reportTitle = name;
+    const name = suggestReportNameForGroup(photos, selectedReportId);
     input("projectName").value = name;
   } else updateSuggestedName(true);
   save();
+  refreshReports();
+  revokeDownload();
   renderSummary();
 };
 for (const id of ["aspect", "quality", "format"])
@@ -2197,12 +2187,15 @@ const reportsUI = setupReports(
   () => photos,
   () => {
     save();
+    revokeDownload();
     renderSummary();
   },
   () => busy,
   setBusy,
-  (id) => {
+  (id, format) => {
     selectedReportId = id;
+    revokeDownload();
+    if (format) select("format").value = format;
     showStage("export");
     renderSummary();
   },
@@ -2241,3 +2234,18 @@ document.addEventListener("languagechange", () => {
   render();
   refreshReports();
 });
+
+for (const [id, filter] of [
+  ["reviewPending", "issues"],
+  ["reviewDuplicates", "duplicates"],
+]) {
+  $(id).onclick = () => {
+    if (busy) return;
+    showStage("review", false);
+    $<HTMLDetailsElement>("batchOverview").open = true;
+    select("batchFilter").value = filter;
+    select("batchFilter").dispatchEvent(new Event("change"));
+    renderBatch();
+    $("batchFilter").focus();
+  };
+}

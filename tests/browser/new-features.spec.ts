@@ -25,6 +25,7 @@ async function importScene(page: Page, buffer: Buffer, name: string) {
     .locator("#files")
     .setInputFiles({ name, mimeType: "image/jpeg", buffer });
   await expect(page.locator("#add")).toBeEnabled();
+  await page.locator("#stepReview").click();
   await expect(page.locator("#canvasEmpty")).toBeHidden();
 }
 test("报告名称自动建议且不覆盖人工名称", async ({ page }) => {
@@ -49,7 +50,7 @@ test("人工确认记住本机构图，后续经验建议需要核对，可关�
   const buffer = await scene(page);
   await importScene(page, buffer, "现场01.jpg");
   await expect(page.locator("#importReviewSummary")).toContainText(
-    "1 张边界待核对",
+    "1 页需处理",
   );
   await revealControl(page, "reset");
   await page.locator("#reset").click();

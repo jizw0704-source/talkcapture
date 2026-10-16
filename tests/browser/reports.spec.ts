@@ -37,10 +37,15 @@ test("local OCR, report groups, corrections, Markdown and recovery", async ({
     "已有分组和名称会保留",
   );
   await expect(page.locator(".report-group")).toHaveCount(2);
+  await page.getByRole("button", { name: "导出原文 Markdown" }).nth(1).click();
+  await expect(page.locator("#format")).toHaveValue("md");
+  await page.locator("#export").click();
+  await expect(page.locator("#download")).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "下载原文 Markdown" }).nth(1).click();
+  await page.locator("#download").click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.md$/);
+  await page.locator("#stepGroups").click();
   await page.route("**/api/analysis/summary", (route) => {
     const payload = route.request().postDataJSON();
     expect(payload.pages).toHaveLength(1);

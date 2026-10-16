@@ -119,3 +119,11 @@ The grouping action changes with the project: Recognize text and suggest groups 
 Name suggestions prefer a title on the first report photo, filtering wordmarks, institutions, dates and conference information, with text geometry as supporting evidence. Missing titles are marked Name needs review. Existing names are never replaced by an upgrade or navigation; use the explicit name suggestion action to apply the updated heuristic.
 
 The photo wall, page list and batch overview share Needs review, Confirmed, Needs attention and Excluded states, with details appended. Automatic correction remains Needs review rather than human confirmation. Cache status is separate. Image-based PPT/PDF exports do not restore editable text or charts. Source Markdown retains recognized text and source pages without AI summaries; charts and equations require the original images. Optional MiniMax interpretation remains separate.
+
+## Shared review, naming and export entry points
+
+Review and issues is shared across all four steps. Missing originals, preview failures, invalid corners and automatic-processing failures are combined per photo; excluded pages are not blockers. Open an issue to reach the existing editor and recovery tools. Show all pages needing review and Check possible duplicates open the existing batch overview with the corresponding filter. No current errors does not mean all pages are confirmed or duplicates have been checked.
+
+Group and export screens share report titles and suggestion logic. An explicit rename updates the report and invalidates an old generated download, which must be regenerated. Blank edits retain the existing title. The whole-project filename remains separate. Browsing does not rename or regroup anything.
+
+Export this report and Export source Markdown both open the same export screen; the latter preselects Markdown. Review the scope, name and relevant warnings, generate the file, then download. Optional MiniMax analysis remains separate from source exports.

@@ -1,4 +1,15 @@
 export const english = {
+  核对与问题: "Review and issues",
+  "核对与问题 · {0} 页需处理": "Review and issues · {0} pages need attention",
+  "核对与问题 · 当前无异常": "Review and issues · no current errors",
+  "集中处理缺图、预览失败和边界问题；疑似重复需你决定保留。":
+    "Handle missing originals, preview failures and corner issues here. You decide which possible duplicates to keep.",
+  查看全部待核对页: "Show all pages needing review",
+  检查疑似重复: "Check possible duplicates",
+  "原图缺失，请补传原图": "Original missing; re-upload the original",
+  "四角无效或不完整，请重新核对":
+    "Corners are invalid or incomplete; review them again",
+  "导出原文 Markdown": "Export source Markdown",
   待核对: "Needs review",
   "当前页已自动校正，仍待人工核对。可微调后确认。":
     "This page was corrected automatically and still needs your review. Adjust if needed, then confirm.",

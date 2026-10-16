@@ -185,7 +185,7 @@ test("手机损坏照片被明确拒绝，新二维码重新配对，上传中�
       "边界需在电脑上核对",
     );
     await expect(page.locator("#importReviewSummary")).toContainText(
-      "1 张边界待核对",
+      "1 页需处理",
     );
   } finally {
     await page

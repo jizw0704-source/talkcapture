@@ -1778,3 +1778,7 @@ body[data-empty="false"] .dropzone small {
     margin-top: 0;
   }
 }
+
+#automaticIssues:empty {
+  display: none;
+}

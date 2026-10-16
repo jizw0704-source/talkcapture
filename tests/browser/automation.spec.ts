@@ -97,7 +97,7 @@ test("一键生成保留人工选区、设置和页序，排除页不输出，�
     "1 页已确认 · 1 页自动校正 · 1 页已排除",
   );
   await expect(page.locator("#status")).toContainText("已生成 2 页 PPTX");
-  await expect(page.locator("#automaticReview")).toBeHidden();
+  await expect(page.locator("#automaticIssues li")).toHaveCount(0);
   expect(await page.locator(".photo-name").allTextContents()).toEqual(order);
   const downloadEvent = page.waitForEvent("download");
   await page.locator("#download").click();

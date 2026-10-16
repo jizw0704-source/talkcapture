@@ -1,21 +1,16 @@
 import { t, uiText, uiAttr } from "../shared/i18n.js";
 import { processImage } from "./processor";
 import { validateCorners } from "./geometry";
+import { setReportName, suggestReportNameForGroup } from "./report-name";
 import { readTemplate, type ReadingLine } from "./grouping-evidence";
 import type { Photo } from "./types";
-import {
-  suggestGroups,
-  titleOf,
-  reportMarkdown,
-  reportSourceMarkdown,
-  groupName,
-} from "./reports";
+import { suggestGroups, titleOf, reportMarkdown, groupName } from "./reports";
 export function setupReports(
   getPhotos: () => Photo[],
   changed: () => void,
   isBusy: () => boolean,
   setBusy: (value: boolean) => void,
-  onExport: (reportId: string) => void = () => {},
+  onExport: (reportId: string, format?: "md") => void = () => {},
 ) {
   const root = document.getElementById("reportWorkspace")!;
   const status = document.getElementById("reportStatus")!;
@@ -112,8 +107,7 @@ export function setupReports(
       name.maxLength = 100;
       name.disabled = running || isBusy();
       name.onchange = () => {
-        for (const p of pages)
-          p.reportTitle = name.value.trim() || titleOf(pages[0]);
+        name.value = setReportName(getPhotos(), id, name.value);
         changed();
       };
       label.append(name);
@@ -136,18 +130,10 @@ export function setupReports(
       const actions = document.createElement("div");
       actions.className = "report-actions";
       actions.append(
-        button("下载原文 Markdown", () =>
-          download(
-            name.value,
-            reportSourceMarkdown(name.value, pages, getPhotos()),
-          ),
-        ),
-      );
-      actions.prepend(button("导出这份报告", () => onExport(id)));
-      actions.append(
+        button("导出这份报告", () => onExport(id)),
+        button("导出原文 Markdown", () => onExport(id, "md")),
         button("重新建议名称", () => {
-          const suggested = groupName(pages);
-          for (const p of pages) p.reportTitle = suggested;
+          suggestReportNameForGroup(getPhotos(), id);
           changed();
           render();
         }),
