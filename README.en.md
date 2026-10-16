@@ -1,30 +1,79 @@
-# TalkCapture
+<p align="center"><img src="public/brand/talkcapture-mark.svg" width="72" alt="TalkCapture mark" /></p>
 
-Report Photo Organizer
+<h1 align="center">TalkCapture · 报告拾光</h1>
+<p align="center"><img src="public/brand/by-pheno.svg" width="120" alt="by pheno" /></p>
+<p align="center"><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
 
-[中文](README.md) · [English](README.en.md)
+**Turn slide photos scattered across your phone into material you can find, read, share, and reuse.**
 
-Turn photos of presentation slides into an image-based PowerPoint deck or PDF.
+For conferences, classes, and technical talks: correct photographed slides, review report groups and titles, then export PPT, PDF, or Markdown for reading, archiving, sharing, or use with your own AI agent.
 
-Built for people attending academic talks, research presentations, and conferences, TalkCapture helps collect slide photos, locate the projected screen, correct perspective, review page order, and export a document for later reference. It supports desktop import, optional phone transfer over a trusted local network, and batch processing while preserving original files and manual adjustments.
+> **0.1.0 — local development release.** Not publicly deployed. Detected corners, report groups, and titles are suggestions for review. Real multi-talk collections, physical phones, and large high-resolution batches still require acceptance testing.
 
-The current version is **0.1.0, a local development release**. The core workflow is implemented. Real photo batches, physical phone workflows, large high-resolution collections, and compatibility with everyday presentation software still require acceptance testing. It has not been publicly deployed or integrated with Pulse.
+![Original selection and corrected preview](docs/showcase/review-en.jpg)
 
-Source backup: [private GitHub repository](https://github.com/jizw0704-source/talkcapture). Repository access requires permission. Local photos and browser editing projects are not included in this backup.
+_Actual interface with built-in synthetic slides. These screenshots do not establish accuracy on real reports._
 
-## Features
+## Why TalkCapture?
 
-| Feature           | Current behavior                                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------ |
-| Import            | JPEG, PNG, HEIC / HEIF; up to 100 photos, 30 MB each, 1 GB total                                             |
-| Phone transfer    | QR pairing on trusted Wi-Fi with desktop approval; one phone for up to 10 minutes                            |
-| Image correction  | Local geometric screen detection, perspective correction, manual corners, rotation, brightness, and contrast |
-| Page organization | Reorder, exclude, restore, and move pages in batches; preserve manual edits                                  |
-| Batch generation  | Explicitly start automatic organization; review uncertain pages before continuing                            |
-| Export            | Image-based PPTX / PDF, 16:9 or 4:3, with quality or file-size priority                                      |
-| Project recovery  | Cache original files and editing metadata locally; restore after refreshing once saved                       |
+Taking a photo is easy. Turning it into useful material takes more work.
 
-Each exported PowerPoint slide contains an image. Editable text and charts, deduplication, and recovery of obscured content are not currently supported. Screen detection uses local geometry. The new report workspace uses macOS Vision OCR and conservative grouping suggestions, editable groups/text, and source-cited Markdown excerpts. Optional MiniMax cloud interpretation sends only the selected report’s recognized text and requires a server-side API key; real multi-talk grouping and summary quality still need acceptance testing. See the [usage guide](docs/usage.en.md).
+After an event, dozens or hundreds of slide photos remain in your phone’s gallery. Different talks are mixed together. Slides are tilted, surrounded by distracting backgrounds, and difficult to read on a small screen. Over time, they consume storage and become harder to find or identify.
+
+Revisiting a talk means searching and correcting photos one by one. Sharing means sending a long stream of images. Using them with an AI agent requires extracting the text first.
+
+TalkCapture bridges the gap between “I photographed it” and “I have organized material I can use.”
+
+## Three core benefits
+
+| Benefit                         | What it helps you do                                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Reduce clutter on your phone    | Transfer photos to your computer and create independent archives; after verifying the archive, choose whether to remove phone copies |
+| Make reports easier to read     | Review slide corners and corrected previews, then group, name, and order pages for continuous reading                                |
+| Make captured material reusable | Download each report as PPT, PDF, or source-text Markdown for reading, sharing, or your own AI agent                                 |
+
+TalkCapture never automatically deletes phone originals. Exported files are not guaranteed to be smaller than the source photos.
+
+## From photos to reports
+
+**Upload from phone or computer → Review images → Review groups and titles → Export each report**
+
+### Group and name reports
+
+Local text recognition suggests boundaries and names. Rename, split, merge, or move pages as needed. Content analysis stays behind an optional entry and does not run by default.
+
+![Report grouping and naming workspace](docs/showcase/groups-en.jpg)
+
+_Synthetic demo with manually adjusted groups and titles, showing the controls rather than measuring automatic grouping accuracy._
+
+### Export what you need
+
+| Format               | Use                                                 | What it contains                                                                                                             |
+| -------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| PPTX                 | Browse, present, and organize                       | Each slide contains a processed image; this does not recover the presenter’s original editable file                          |
+| PDF                  | Read, archive, and share                            | Organized slide images                                                                                                       |
+| Source-text Markdown | Search, analyze, or organize with your own AI agent | Page-by-page recognized text and source references without AI analysis; verify data, formulas, and charts against the images |
+
+![Report selection and export formats](docs/showcase/export-en.jpg)
+
+<details>
+<summary>See the phone-first import entry</summary>
+
+![Phone-first import screen](docs/showcase/import-zh.jpg)
+
+Pair on trusted Wi-Fi and approve the connection on the computer. No pairing session or QR credential is shown. This supplementary screenshot uses the Chinese interface.
+
+</details>
+
+## Capabilities and focus
+
+- JPEG, PNG, HEIC / HEIF; up to 100 photos, 30 MB each, 1 GB total.
+- Optional phone transfer with desktop approval: one phone, up to 10 minutes.
+- Local corner suggestions, manual corners, perspective correction, rotation, brightness, and contrast; originals and manual edits are preserved.
+- Reorder, exclude, and restore pages. Original files and editing metadata are cached locally and restored after refreshing once saved.
+- Local macOS Vision OCR, suggested report groups, and per-report export. No recovery of obscured content, deduplication, or editable charts.
+
+TalkCapture focuses on organizing source material. Deeper research, summarization, and knowledge management can continue in your own AI agent or other tools. Optional MiniMax analysis sends only the selected report’s recognized text and source-page references when explicitly invoked, never its images or other reports.
 
 ## Quick start
 

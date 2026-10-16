@@ -31,3 +31,6 @@ coverage/
 *.pem
 *.key
 *.p12
+
+# Reviewed synthetic documentation screenshots (never user photos)
+!docs/showcase/*.jpg
