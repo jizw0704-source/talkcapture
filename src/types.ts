@@ -51,7 +51,7 @@ export type ProcessRequest = {
   maxEdge: number;
   brightness: number;
   contrast: number;
-  kind: "warp" | "plain" | "detect";
+  kind: "warp" | "plain" | "detect" | "compare";
   examples?: import("./learning").Correction[];
 };
 export type ProcessResult = {
@@ -62,5 +62,12 @@ export type ProcessResult = {
   sourceWidth?: number;
   sourceHeight?: number;
   detection?: SlideDetection;
+  comparison?: {
+    old: SlideDetection;
+    current: SlideDetection;
+    region: SlideDetection;
+    oldMs: number;
+    currentMs: number;
+  };
   error?: string;
 };

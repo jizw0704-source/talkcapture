@@ -27,8 +27,8 @@ export function setupReports(
   const sourceKey = (p: Photo) =>
     JSON.stringify([p.digest || "", p.rotation, p.corners]);
   const eligible = () => getPhotos().filter((p) => !p.excluded);
-  const setStatus = (s: string) => {
-    uiText(status, () => s);
+  const setStatus = (s: string | (() => string)) => {
+    uiText(status, () => (typeof s === "function" ? s() : s));
   };
   const button = (text: string, action: () => void) => {
     const b = document.createElement("button");
@@ -360,8 +360,18 @@ export function setupReports(
         for (const p of pages) p.reportTitle = name;
       }
       changed();
-      setStatus(
-        `已整理为 ${groups().size} 组，请核对分界。${failed ? ` ${failed} 页缺少可识别文字，仍保留在分组中；可补图后重试或手动填写。` : " 可修改分组和名称，再按组导出 PPT、PDF 或原文 Markdown。"}`,
+      const groupCount = groups().size;
+      setStatus(() =>
+        t(
+          "已整理为 {0} 组，请核对分界。{1}",
+          groupCount,
+          failed
+            ? t(
+                " {0} 页缺少可识别文字，仍保留在分组中；可补图后重试或手动填写。",
+                failed,
+              )
+            : t(" 可修改分组和名称，再按组导出 PPT、PDF 或原文 Markdown。"),
+        ),
       );
     } catch (e) {
       setStatus((e as Error).message);

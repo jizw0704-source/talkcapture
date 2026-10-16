@@ -5,6 +5,11 @@ import { defineConfig } from "vite";
 import { createTransfer } from "./server/transfer.ts";
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: { main: "index.html", corners: "validation/corners.html" },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(
       JSON.parse(

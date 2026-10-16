@@ -1,9 +1,10 @@
 import { validateCorners, type Point } from "./geometry.ts";
+import { regionCandidates } from "./region-detection.ts";
 
 export type SlideDetection = {
   status: "suggested" | "not_found" | "ambiguous";
   corners: Point[];
-  source?: "local-correction" | "partial-edge";
+  source?: "local-correction" | "partial-edge" | "region" | "agreement";
 };
 type Line = { a: number; b: number; r: number; votes: number };
 type Edge = { x: number; y: number; angle: number };
@@ -365,7 +366,7 @@ function detectFrame(
   };
 }
 
-export function detectSlide(
+export function detectEdges(
   data: Uint8ClampedArray,
   width: number,
   height: number,
@@ -373,4 +374,59 @@ export function detectSlide(
   const complete = detectFrame(data, width, height);
   if (complete.status !== "not_found") return complete;
   return detectFrame(data, width, height, true);
+}
+
+export function detectSlide(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): SlideDetection {
+  const edge = detectEdges(data, width, height);
+  const candidates = regionCandidates(data, width, height);
+  if (!candidates.length) return edge;
+  const region = candidates[0];
+  const gap = (a: Point[], b: Point[]) =>
+    Math.max(...a.map((p, k) => distance(p, b[k])));
+  const center = (points: Point[]) => ({
+    x: points.reduce((s, p) => s + p.x, 0) / 4,
+    y: points.reduce((s, p) => s + p.y, 0) / 4,
+  });
+  // Multiple substantial, separate screens stay explicitly uncertain.
+  if (
+    candidates.some(
+      (c) =>
+        c !== region &&
+        c.score > region.score * 0.7 &&
+        distance(center(c.corners), center(region.corners)) > 0.18,
+    )
+  )
+    return { status: "ambiguous", corners: [] };
+  if (edge.status === "suggested") {
+    if (gap(edge.corners, region.corners) <= 0.045)
+      return {
+        ...edge,
+        source: edge.source === "partial-edge" ? "partial-edge" : "agreement",
+      };
+    const disagreements = region.corners.map(
+      (p, k) => distance(p, edge.corners[k]) > 0.045,
+    );
+    if (disagreements.filter(Boolean).length === 1) {
+      const corner = region.corners[disagreements.indexOf(true)];
+      const protrudes = edge.corners.some((a, k) => {
+        const b = edge.corners[(k + 1) % 4];
+        return (
+          (b.x - a.x) * (corner.y - a.y) - (b.y - a.y) * (corner.x - a.x) <
+          -0.005
+        );
+      });
+      // A region leaking into a chair/person/wall at one corner must not
+      // displace an otherwise matching four-line boundary.
+      if (protrudes) return edge;
+    }
+    // A coherent region is useful as a preview even when edge lines disagree.
+    // It is explicitly gated for human confirmation by its source.
+    return { status: "suggested", corners: region.corners, source: "region" };
+  }
+  if (edge.status === "ambiguous") return edge;
+  return { status: "suggested", corners: region.corners, source: "region" };
 }

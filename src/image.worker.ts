@@ -1,6 +1,8 @@
 import { heicTo } from "heic-to/next";
 import { homography, targetSize, validateCorners } from "./geometry";
 import { suggestCorners } from "./suggestions";
+import { detectEdges, detectSlide } from "./detection";
+import { regionCandidates } from "./region-detection";
 import type { ProcessRequest, ProcessResult } from "./types";
 
 async function decode(blob: Blob) {
@@ -53,9 +55,30 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
     );
     bitmap.close();
     bitmap = undefined;
-    if (q.kind === "detect") {
+    if (q.kind === "detect" || q.kind === "compare") {
       const pixels = ctx.getImageData(0, 0, w, h).data;
-      const detection = suggestCorners(pixels, w, h, q.examples);
+      let comparison: ProcessResult["comparison"];
+      if (q.kind === "compare") {
+        let start = performance.now();
+        const old = detectEdges(pixels, w, h);
+        const oldMs = performance.now() - start;
+        start = performance.now();
+        const current = detectSlide(pixels, w, h);
+        const currentMs = performance.now() - start;
+        const region = regionCandidates(pixels, w, h)[0];
+        comparison = {
+          old,
+          current,
+          region: {
+            status: region ? "suggested" : "not_found",
+            corners: region?.corners ?? [],
+          },
+          oldMs,
+          currentMs,
+        };
+      }
+      const detection =
+        comparison?.current ?? suggestCorners(pixels, w, h, q.examples);
       const scale = Math.min(1, 240 / Math.max(w, h));
       const width = Math.max(1, Math.round(w * scale));
       const height = Math.max(1, Math.round(h * scale));
@@ -73,6 +96,7 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
           sourceWidth,
           sourceHeight,
           detection,
+          comparison,
         } satisfies ProcessResult);
       } finally {
         thumb.width = 1;

@@ -27,5 +27,8 @@ test("人工纠正也用于已有几何候选的后续照片，但仍明确标�
   ]);
   assert.equal(result.source, "local-correction");
   assert.deepEqual(result.corners, corners);
-  assert.equal(suggestCorners(data, width, height).source, undefined);
+  assert.notEqual(
+    suggestCorners(data, width, height).source,
+    "local-correction",
+  );
 });

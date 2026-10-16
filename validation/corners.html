@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>找角对比 · TalkCapture</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family:
+          MiSans,
+          system-ui,
+          -apple-system,
+          "PingFang SC",
+          sans-serif;
+        color: light-dark(#101010, #eee);
+        background: light-dark(#f7f7f7, #181818);
+      }
+      body {
+        max-width: 1100px;
+        margin: auto;
+        padding: 32px;
+        line-height: 1.6;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 600;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      button,
+      a {
+        color: inherit;
+      }
+      button {
+        font: inherit;
+        min-height: 44px;
+        padding: 8px 20px;
+        border: 1px solid #8f9499;
+        border-radius: 12px;
+        background: transparent;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid #567700;
+        outline-offset: 4px;
+      }
+      #status,
+      .hint {
+        color: light-dark(#4a4a4a, #bbb);
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 24px 0;
+      }
+      article {
+        padding: 24px 0;
+        border-top: 1px solid light-dark(#e4e4e4, #444);
+      }
+      .views {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      canvas {
+        width: 100%;
+        height: auto;
+        background: #222;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        padding: 8px 0;
+      }
+      p {
+        overflow-wrap: anywhere;
+      }
+      a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        underline-offset: 4px;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 20px;
+        }
+        .views {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (forced-colors: active) {
+        button {
+          border-color: ButtonText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/">返回工具</a>
+    <h1>找角新旧效果对比</h1>
+    <p class="hint">
+      只读取本机缓存，不修改选区、确认状态或页序，不发送照片。以已确认选区作为参照，参照本身仍可能存在误差。新旧算法均不使用本地纠正经验，以单独比较检测能力。
+    </p>
+    <div class="controls">
+      <button id="run">开始本地对比</button
+      ><button id="download" disabled>下载对比数据</button>
+    </div>
+    <p id="status" role="status">准备就绪</p>
+    <p id="summary"></p>
+    <div id="results"></div>
+    <script type="module" src="../src/corner-benchmark.ts"></script>
+  </body>
+</html>

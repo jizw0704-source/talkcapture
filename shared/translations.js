@@ -41,9 +41,9 @@ export const english = {
   "{0} 张照片已保存但预览未完成，请从待核对列表重试。":
     "{0} photos were saved but previews are incomplete. Retry from the review list.",
   "预览失败，点击重试": "Preview failed; open to retry",
-  遮挡边界需确认: "Occluded boundary needs review",
-  "已找到可能被遮挡的边界，请人工核对并确认。":
-    "A potentially occluded boundary was found. Review the corners and confirm.",
+  边界建议需确认: "Boundary suggestion needs review",
+  "已找到边界建议，请人工核对并确认。":
+    "A boundary suggestion was found. Review the corners and confirm.",
   "语言 / Language": "Language",
   "无法读取电脑端模型配置。":
     "Could not read the computer model configuration.",
@@ -325,11 +325,13 @@ export const english = {
   "未识别到文字，请核对原图清晰度与选区。":
     "No text recognized. Check image sharpness and crop.",
   "已整理为 {0} 组，请核对分界。{1}":
-    "Organized into {0} groups. Review the boundaries. {1}",
+    "Report groups: {0}. Review the boundaries. {1}",
   " {0} 页缺少可识别文字，仍保留在分组中；可补图后重试或手动填写。":
     " {0} pages have no readable text and remain in their groups. Restore photos and retry or enter text manually.",
   " 可修改分组和报告名称，然后下载 Markdown。":
     " Rename and adjust groups, then download Markdown.",
+  " 可修改分组和名称，再按组导出 PPT、PDF 或原文 Markdown。":
+    " Adjust groups and names, then export each report as PPT, PDF or source Markdown.",
   "{0} 张 · 已导入 {1} · 待完成 {2} · 失败 {3}{4}":
     "{0} photos · {1} imported · {2} pending · {3} failed{4}",
   " · 边界待核对 {0}": " · {0} boundaries to review",
@@ -599,8 +601,8 @@ export const english = {
   生成文件: "Create file",
   取消导出: "Cancel export",
   "本地保存、隐私与兼容说明": "Local storage, privacy and compatibility",
-  "自动定位仅按图像边缘寻找矩形画面，不理解 PPT 内容；暗光、反光、遮挡和多个屏幕可能导致错误。逐页模式需要确认；主动点击“自动整理并生成 PPT”后，有明确候选的页面会自动校正，不确定的页面集中检查。自动校正不代表人工确认，请检查下载结果。识别失败不会删除照片，最终导出仍从原图生成。":
-    "Screen detection uses image edges, not content understanding. Poor lighting, glare, occlusion and multiple screens may cause errors. Manual mode requires confirmation. Automatic mode corrects clear candidates and lists uncertain pages for review. Automatic correction is not human approval: check the download. Failed detection never deletes photos; exports are generated from originals.",
+  "自动定位结合图像边缘与亮度、色差区域寻找画面，不理解 PPT 内容；暗光、反光、遮挡和多个屏幕可能导致错误。逐页模式需要确认；主动点击“自动整理并生成 PPT”后，有明确候选的页面会自动校正，不确定的页面集中检查。自动校正不代表人工确认，请检查下载结果。识别失败不会删除照片，最终导出仍从原图生成。":
+    "Screen detection combines image edges with brightness and color regions, not content understanding. Poor lighting, glare, occlusion and multiple screens may cause errors. Manual mode requires confirmation. Automatic mode corrects clear candidates and lists uncertain pages for review. Automatic correction is not human approval: check the download. Failed detection never deletes photos; exports are generated from originals.",
   "原图与编辑参数保存在当前浏览器本地缓存中；显示保存完成后，刷新可自动恢复。旧照片或缓存被清理时需补传，优先按文件内容匹配；定向补传保留选区和页序。清空项目会删除本工具的缓存副本和编辑参数，不删除电脑或手机原始文件。":
     "Originals and edits are cached in this browser. After saving finishes, refreshing restores them. Older records or cleared caches need re-uploading; content matching is preferred, and targeted restoration preserves crops and order. Clearing the project removes only this tool’s cached copies and edits, not originals on your devices.",
   "照片校正、缩略图和输出文件均在浏览器本地生成。可选的手机传图通过局域网暂存到这台电脑，不经过云端，没有分析埋点。只有主动点击「MiniMax 解读」时，选中报告的识别文字与来源页码才发送到 MiniMax，不发送原图；密钥仅在电脑端配置。HEIC / HEIF 使用本地解码器，无法解码的文件会逐项列出。严重模糊、遮挡和过曝不能恢复缺失内容。":

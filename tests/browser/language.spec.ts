@@ -113,3 +113,68 @@ test("phone upload inherits English from QR and can switch languages", async ({
     await page.locator("#phoneStop").click();
   }
 });
+
+test("group completion and missing-text notices translate fully when switching languages", async ({
+  page,
+}) => {
+  let missing = false;
+  await page.route("**/api/analysis/ocr", (r) =>
+    r.fulfill({
+      json: {
+        lines: missing
+          ? []
+          : [{ text: "中文报告原文与报告人：张老师", confidence: 0.95 }],
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.locator("#demo").click();
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
+  await page.locator("#stepGroups").click();
+  await page.locator("#analyzeReports").click();
+  await expect(page.locator("#reportStatus")).toContainText("已整理为");
+  const changeLanguage = async (language: string) => {
+    await page.locator("#settingsOpen").click();
+    await page.locator("#languageChoice").selectOption(language);
+    await page.locator("#settingsClose").click();
+  };
+  await changeLanguage("en");
+  await expect(page.locator("#reportStatus")).toContainText(
+    "Adjust groups and names",
+  );
+  await expect(page.locator("#reportStatus")).not.toContainText(
+    /[\u3400-\u9fff]/,
+  );
+  await expect(page.locator(".report-group input").first()).toHaveValue(
+    /中文报告/,
+  );
+  await changeLanguage("zh");
+  await expect(page.locator("#reportStatus")).toContainText("可修改分组和名称");
+  // A fresh synthetic batch also exercises the translated missing-text suffix.
+  await page.reload();
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
+  await page.locator("#stepImport").click();
+  await page.locator("#importSettings > summary").click();
+  await page.locator("#clear").click();
+  await page.locator('#clearDialog button[value="clear"]').click();
+  await expect(page.locator("#counts")).toBeHidden();
+  missing = true;
+  await page.locator("#demo").click();
+  await expect(page.locator("#cacheStatus")).toContainText("已保存 3 / 3");
+  await page.locator("#stepGroups").click();
+  await page.locator("#analyzeReports").click();
+  await expect(page.locator("#reportStatus")).toContainText("3 页缺少");
+  await changeLanguage("en");
+  await expect(page.locator("#reportStatus")).toContainText(
+    "3 pages have no readable text",
+  );
+  await expect(page.locator("#reportStatus")).not.toContainText(
+    /[\u3400-\u9fff]/,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});

@@ -579,7 +579,7 @@ function renderSummary() {
         photo.previewError
           ? t("预览失败，点击重试")
           : photo.boundaryNeedsReview
-            ? t("遮挡边界需确认")
+            ? t("边界建议需确认")
             : photo.sourceNeedsReview
               ? t("补传原图需核对")
               : photo.learnedSuggestion
@@ -744,7 +744,7 @@ function renderPages() {
           : photo.processed
             ? t("已确认")
             : photo.boundaryNeedsReview
-              ? t("遮挡边界需确认")
+              ? t("边界建议需确认")
               : photo.sourceNeedsReview
                 ? t("补传原图 \u00B7 请核对选区")
                 : photo.learnedSuggestion
@@ -853,7 +853,7 @@ function render() {
                 ? t("当前页已自动校正，建议检查完整内容。可微调后人工确认。")
                 : t("当前页已确认。拖动控制点后需重新确认。")
               : photo.boundaryNeedsReview
-                ? t("已找到可能被遮挡的边界，请人工核对并确认。")
+                ? t("已找到边界建议，请人工核对并确认。")
                 : photo.sourceNeedsReview
                   ? t(
                       "已补传原图，但无法与旧内容核验，请核对原有选区后重新确认。",
@@ -1018,8 +1018,9 @@ async function prepareRestoredPages() {
           photo.corners = copy(result.detection.corners);
           photo.learnedSuggestion =
             result.detection.source === "local-correction";
-          photo.boundaryNeedsReview =
-            result.detection.source === "partial-edge";
+          photo.boundaryNeedsReview = ["partial-edge", "region"].includes(
+            result.detection.source || "",
+          );
         }
       }
       await preparePagePreview(photo);
@@ -1542,7 +1543,9 @@ async function importFiles(files: File[], targetId?: string) {
       }
       if (automatic && plain.detection) {
         photo.detection = plain.detection.status;
-        photo.boundaryNeedsReview = plain.detection.source === "partial-edge";
+        photo.boundaryNeedsReview = ["partial-edge", "region"].includes(
+          plain.detection.source || "",
+        );
         photo.learnedSuggestion = plain.detection.source === "local-correction";
         photo.corners = copy(plain.detection.corners);
       }
@@ -1711,7 +1714,9 @@ $("autoFind").onclick = async () => {
       photo.manuallyAdjusted = false;
       photo.corners = copy(result.detection.corners);
       photo.detection = "suggested";
-      photo.boundaryNeedsReview = result.detection.source === "partial-edge";
+      photo.boundaryNeedsReview = ["partial-edge", "region"].includes(
+        result.detection.source || "",
+      );
       photo.learnedSuggestion = result.detection.source === "local-correction";
       selectedPoint = -1;
       invalidate(photo);
