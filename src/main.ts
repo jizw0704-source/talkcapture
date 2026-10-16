@@ -1,6 +1,8 @@
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
 import { setupSettings } from "./settings";
 import { setupReports } from "./report-ui";
+import { setupImportGallery } from "./import-gallery";
+let renderGallery = Object.assign(() => {}, { isOpen: (): boolean => false });
 import { setupBatchReview } from "./batch-review";
 let renderBatch = () => {};
 import { reportGroups, reportSourceMarkdown, groupName } from "./reports";
@@ -138,6 +140,7 @@ const button = (text: string, action: () => void) => {
 };
 const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 function renderStage() {
+  renderGallery();
   document.body.dataset.stage = stage;
   document.body.dataset.empty = String(!photos.length);
   for (const name of ["import", "review", "groups", "export"] as const) {
@@ -388,7 +391,7 @@ function setBusy(value: boolean) {
   busy = value;
   document
     .querySelectorAll<HTMLButtonElement>(
-      "button:not(#settingsOpen):not(#settingsClose):not(#saveModelSettings):not(#testModelSettings):not(#cancelAnalysis):not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control])",
+      "button:not(#settingsOpen):not(#settingsClose):not(#saveModelSettings):not(#testModelSettings):not(#cancelAnalysis):not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control]):not([data-gallery-control])",
     )
     .forEach((el) => {
       el.disabled = value;
@@ -401,6 +404,7 @@ function setBusy(value: boolean) {
       el.disabled = value;
     });
   canvas.style.pointerEvents = value ? "none" : "auto";
+  renderGallery();
   if (!value) {
     $("progress").hidden = true;
     render();
@@ -676,6 +680,7 @@ function renderSummary() {
     select("aspect").value === "wide" ? "16 / 9" : "4 / 3";
 }
 function renderPages() {
+  renderGallery();
   renderBatch();
   const list = $("pageList");
   list.replaceChildren();
@@ -1459,6 +1464,7 @@ function sortPhotos() {
 }
 async function importFiles(files: File[], targetId?: string) {
   if (busy || !files.length) return;
+  const keepImportView = stage === "import" && photos.length > 0;
   setBusy(true);
   displayToken++;
   previewToken++;
@@ -1578,6 +1584,7 @@ async function importFiles(files: File[], targetId?: string) {
         await retainOriginal(other);
         restored++;
       }
+      renderGallery();
       // Prepare EVERY imported page, without treating a preview failure as
       // an upload failure or marking a geometric suggestion as confirmed.
       progress(
@@ -1611,6 +1618,10 @@ async function importFiles(files: File[], targetId?: string) {
     `新增 ${added} 张，恢复 ${restored} 张。${failures.length ? "\n未导入：\n" + failures.join("\n") : ""}${previewFailures.length ? "\n" + t("{0} 张照片已保存但预览未完成，请从待核对列表重试。", previewFailures.length) : ""}`,
     !!failures.length,
   );
+  if (keepImportView || renderGallery.isOpen()) {
+    renderGallery();
+    return;
+  }
   if (added || restored) showStage("review", false);
   // Incoming phone photos must not reload the page currently being edited.
   if (added && !restored && bitmap && bitmapPhotoId === currentId) {
@@ -2220,6 +2231,17 @@ renderBatch = setupBatchReview(
   () => {
     save();
     render();
+  },
+);
+renderGallery = setupImportGallery(
+  () => photos,
+  () => busy,
+  (id) => {
+    showStage("review", false);
+    void openPhoto(id).then(() => {
+      $("currentName").tabIndex = -1;
+      $("currentName").focus();
+    });
   },
 );
 setupSettings();

@@ -103,3 +103,11 @@ Expand “Batch review overview” in Review. Filter included pages, pages needi
 Local comparison checks normalized grayscale previews and aspect ratios. Blank/low-information frames and missing previews are not duplicate evidence. Camera changes, occlusion, color differences and small content changes may produce missed or false suggestions. Compare full content before choosing, especially slides with progressively revealed information.
 
 Compare two suggested pages, explicitly keep one and exclude the other, or keep both and dismiss that pair for this session. Excluding only removes a page from output; originals, confirmed corners and confirmation state remain. Restore excluded pages through the overview or page list. Exclusions persist with the project, while dismissed pairs are session-only. No page is automatically excluded or deleted.
+
+## Photo wall on the import screen
+
+When photos exist, the import screen shows every record in the current page order, including excluded pages and missing originals. Cards show page numbers, filenames and review status. Open a card to browse an unwarped original preview, use Previous/Next or the arrow keys, and press Escape to return focus to its card. Review this photo opens the existing corner editor without changing its crop or confirmation state. Missing originals keep their place and show a recovery hint.
+
+Additional uploads update the wall incrementally while browsing the import screen, retaining existing cards, the open photo and focus. The first import keeps the existing transition to review; return through the brand link or Import photos. Browsing does not change ordering, report assignments, crops or exclusions.
+
+Collapse photos hides the thumbnails while retaining the photo count. Show photos restores them. The state is retained during step navigation and additional uploads in the current page session; refreshing expands the wall by default. Collapsing does not remove photos or affect uploads, groups or exports.

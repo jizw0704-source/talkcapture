@@ -1,4 +1,17 @@
 export const english = {
+  收起照片墙: "Collapse photos",
+  展开照片墙: "Show photos",
+  已上传照片: "Uploaded photos",
+  "共 {0} 张 · 按当前页序展示": "{0} photos · in current page order",
+  "点击查看原图，也可前往核对。照片按现有页序展示。":
+    "Open an original photo or jump to review. Photos follow the current page order.",
+  "查看第 {0} 张原图：{1}": "View original photo {0}: {1}",
+  "第 {0} / {1} 张 · {2}": "Photo {0} / {1} · {2}",
+  "正在载入原图…": "Loading original photo…",
+  "预览失败，请核对": "Preview failed; please review",
+  "原图预览失败，可前往核对重试。":
+    "Could not load the original preview. Open review to retry.",
+  去核对这张: "Review this photo",
   "分界线索：{0}": "Boundary evidence: {0}",
   "发现报告人变化，待核对": "Presenter changed; please review",
   "页眉或页脚机构标识变化，待核对":

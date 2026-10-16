@@ -238,6 +238,30 @@
             <p class="hint permission">请使用有权保存和处理的报告照片。</p>
           </div>
         </div>
+        <section
+          id="importGallery"
+          class="import-gallery"
+          aria-labelledby="importGalleryTitle"
+          hidden
+        >
+          <div class="section-heading">
+            <h2 id="importGalleryTitle">已上传照片</h2>
+            <p id="importGalleryCount" class="hint"></p>
+            <button
+              id="galleryToggle"
+              class="quiet"
+              aria-expanded="true"
+              aria-controls="importGalleryContent"
+              data-gallery-control
+            >
+              收起照片墙
+            </button>
+          </div>
+          <div id="importGalleryContent">
+            <p class="hint">点击查看原图，也可前往核对。照片按现有页序展示。</p>
+            <div id="importGalleryGrid" class="import-gallery-grid"></div>
+          </div>
+        </section>
         <div class="import-footer">
           <button id="demo" class="quiet">体验示例</button>
           <details id="importSettings" class="settings">
@@ -605,6 +629,26 @@
         </p>
       </details>
     </main>
+    <dialog
+      id="photoViewer"
+      class="photo-viewer"
+      aria-labelledby="galleryTitle"
+      aria-describedby="galleryStatus"
+    >
+      <div class="section-heading">
+        <h2 id="galleryTitle"></h2>
+        <button id="galleryClose" data-gallery-control autofocus>关闭</button>
+      </div>
+      <div class="gallery-image-area">
+        <img id="galleryImage" alt="" hidden />
+      </div>
+      <p id="galleryStatus" class="hint" role="status"></p>
+      <div class="gallery-viewer-actions">
+        <button id="galleryPrevious" data-gallery-control>上一张</button>
+        <button id="galleryNext" data-gallery-control>下一张</button>
+        <button id="galleryReview" class="primary">去核对这张</button>
+      </div>
+    </dialog>
     <dialog id="clearDialog">
       <form method="dialog">
         <h2>清空当前项目？</h2>
