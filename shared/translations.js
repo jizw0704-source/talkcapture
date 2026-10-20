@@ -1,4 +1,16 @@
 export const english = {
+  "章节编号可能倒排，请核对顺序；不会自动重排。":
+    "Chapter numbers may run backwards. Check the order; no automatic reordering.",
+  "画面检查 · 当前无异常": "Image checks · No issues detected",
+  分组与页序已核对: "Grouping and order reviewed",
+  分组与页序待核对: "Grouping and order need review",
+  "首张可能是结束页，请核对顺序；不会自动重排。":
+    "The first photo may be a closing slide. Check the order; no automatic reordering.",
+  反转本组页序: "Reverse this report",
+  撤销本组排序: "Undo report ordering",
+  确认分组与页序: "Confirm grouping and order",
+  本组上移: "Move up in report",
+  本组下移: "Move down in report",
   "没有待整理照片，可显示已移除照片并恢复。":
     "No active photos. Show removed photos to restore them.",
   移除照片: "Remove photo",

@@ -1,3 +1,4 @@
+import { orderedReport, reconcileReportReviews } from "./report-order";
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
 import { collectReviewIssues } from "./review-issues";
 import { setReportName, suggestReportNameForGroup } from "./report-name";
@@ -123,7 +124,9 @@ let drag:
 let pointer: Point | undefined;
 const current = () => photos.find((p) => p.id === currentId);
 const copy = (points: Point[]) => points.map((p) => ({ ...p }));
+let exportStatusOnly = false;
 const message = (text: string, error = false) => {
+  exportStatusOnly = false;
   $("status").hidden = !text;
   uiText($("status"), () => text);
   $("status").classList.toggle("error", error);
@@ -143,6 +146,7 @@ const button = (text: string, action: () => void) => {
 };
 const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 function renderStage() {
+  if (exportStatusOnly) $("status").hidden = stage !== "export";
   renderGallery();
   document.body.dataset.stage = stage;
   document.body.dataset.empty = String(!photos.length);
@@ -161,6 +165,7 @@ function renderStage() {
 function showStage(next: Stage, focus = true) {
   if (busy || (next !== "import" && !photos.length)) return;
   stage = next;
+
   if (next === "groups") refreshReports();
   if (next === "groups" || next === "export") $("phonePanel").hidden = true;
   if (next === "export") {
@@ -202,12 +207,20 @@ $("groupsBack").onclick = () => showStage("review");
 $("groupsExport").onclick = () => showStage("export");
 $("backReview").onclick = () => showStage("groups");
 function exportPhotos() {
-  return photos.filter(
+  const included = photos.filter(
     (p) =>
       !p.excluded &&
       (selectedReportId === "all" ||
         (p.reportId || "unassigned") === selectedReportId),
   );
+  if (selectedReportId !== "all") return orderedReport(included);
+  const queues = new Map<string, Photo[]>();
+  for (const p of included) {
+    const id = p.reportId || "unassigned";
+    queues.set(id, [...(queues.get(id) || []), p]);
+  }
+  for (const [id, pages] of queues) queues.set(id, orderedReport(pages));
+  return included.map((p) => queues.get(p.reportId || "unassigned")!.shift()!);
 }
 function syncExportGroups() {
   const control = select("exportGroup");
@@ -254,6 +267,7 @@ select("exportGroup").onchange = () => {
   renderSummary();
 };
 function revokeDownload() {
+  if (exportStatusOnly) message("");
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = "";
   $("download").hidden = true;
@@ -343,6 +357,7 @@ async function retainOriginal(photo: Photo) {
   renderCacheStatus();
 }
 function save() {
+  reconcileReportReviews(photos);
   clearTimeout(saveTimer);
   revokeDownload();
   saveTimerPending = true;
@@ -453,7 +468,7 @@ function renderAutomatic() {
   uiText($("importReviewSummary"), () =>
     issues.length
       ? t("核对与问题 · {0} 页需处理", issues.length)
-      : t("核对与问题 · 当前无异常"),
+      : t("画面检查 · 当前无异常"),
   );
   const key = JSON.stringify([busy, issues, photos.map((p) => [p.id, p.name])]);
   if (key === issueView) return;
@@ -1975,6 +1990,7 @@ async function generateReport() {
     message(
       `已生成 ${included.length} 页 ${format.toUpperCase()}，请点击下载并检查文件。${included.some((p) => p.automated) ? "部分页面由工具自动校正，请检查裁切是否完整。" : ""}${included.some((p) => !p.processed) ? "未确认页使用原图。" : ""}`,
     );
+    exportStatusOnly = true;
     return true;
   } catch (error) {
     message((error as Error).message, !exportController?.signal.aborted);

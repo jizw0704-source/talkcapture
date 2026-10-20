@@ -1,3 +1,11 @@
+import {
+  orderedReport,
+  reviewSignature,
+  isReportReviewed,
+  confirmReport,
+  applyReportOrder,
+  orderWarning,
+} from "./report-order";
 import { t, uiText, uiAttr } from "../shared/i18n.js";
 import { processImage } from "./processor";
 import { validateCorners } from "./geometry";
@@ -20,6 +28,10 @@ export function setupReports(
   let controller: AbortController | undefined;
   let running = false;
   let lastView = "";
+  const orderUndo = new Map<
+    string,
+    { before: { id: string; order?: number; review?: string }[]; after: string }
+  >();
   const sourceKey = (p: Photo) =>
     JSON.stringify([p.digest || "", p.rotation, p.corners]);
   const eligible = () => getPhotos().filter((p) => !p.excluded);
@@ -48,6 +60,7 @@ export function setupReports(
       const id = p.reportId || "unassigned";
       map.set(id, [...(map.get(id) || []), p]);
     }
+    for (const [id, pages] of map) map.set(id, orderedReport(pages));
     return map;
   }
   function render() {
@@ -67,6 +80,8 @@ export function setupReports(
         p.id,
         p.reportId,
         p.reportTitle,
+        p.reportOrder,
+        p.reportReview,
         p.processed,
         p.thumb,
         p.result,
@@ -166,6 +181,33 @@ export function setupReports(
         ),
       );
       info.append(sourcePages);
+      const reviewed = document.createElement("p");
+      reviewed.className = "hint";
+      uiText(reviewed, () =>
+        t(isReportReviewed(pages) ? "分组与页序已核对" : "分组与页序待核对"),
+      );
+      info.append(reviewed);
+      const warning = orderWarning(pages);
+      if (warning && !isReportReviewed(pages)) {
+        const note = document.createElement("p");
+        note.className = "hint";
+        uiText(note, () => t(warning));
+        info.append(note);
+      }
+      const reorder = (ids: string[]) => {
+        orderUndo.set(id, {
+          before: pages.map((p) => ({
+            id: p.id,
+            order: p.reportOrder,
+            review: p.reportReview,
+          })),
+          after: "",
+        });
+        if (!applyReportOrder(pages, ids)) return;
+        orderUndo.get(id)!.after = reviewSignature(pages);
+        changed();
+        render();
+      };
       const actions = document.createElement("div");
       actions.className = "report-actions";
       actions.append(
@@ -201,6 +243,10 @@ export function setupReports(
             const previous = [...grouped.entries()][
               [...grouped.keys()].indexOf(id) - 1
             ];
+            [...previous[1], ...pages].forEach((p, index) => {
+              p.reportReview = undefined;
+              p.reportOrder = index;
+            });
             for (const p of pages) {
               p.reportId = previous[0];
               p.groupingReason = undefined;
@@ -214,6 +260,36 @@ export function setupReports(
       section.append(actions);
       const details = disclosure(`${id}:pages`, "核对分组");
       details.className = "report-pages";
+      const orderActions = document.createElement("div");
+      orderActions.className = "report-actions";
+      orderActions.append(
+        button("反转本组页序", () =>
+          reorder([...pages].reverse().map((p) => p.id)),
+        ),
+      );
+      const undo = orderUndo.get(id);
+      if (undo && undo.after === reviewSignature(pages))
+        orderActions.append(
+          button("撤销本组排序", () => {
+            for (const saved of undo.before) {
+              const p = pages.find((p) => p.id === saved.id)!;
+              p.reportOrder = saved.order;
+              p.reportReview = saved.review;
+            }
+            orderUndo.delete(id);
+            changed();
+            render();
+          }),
+        );
+      if (id !== "unassigned")
+        orderActions.append(
+          button("确认分组与页序", () => {
+            confirmReport(pages);
+            changed();
+            render();
+          }),
+        );
+      details.append(orderActions);
       if (pages[0].groupingReason) {
         const hint = document.createElement("p");
         hint.className = "hint";
@@ -229,6 +305,35 @@ export function setupReports(
           t("第 {0} 页 \u00B7 {1}", getPhotos().indexOf(p) + 1, p.name),
         );
         row.append(title);
+        const thumb = p.result || p.thumb;
+        if (thumb) {
+          const img = document.createElement("img");
+          img.src = thumb;
+          img.alt = p.name;
+          img.loading = "lazy";
+          img.width = 160;
+          img.height = 90;
+          img.style.objectFit = "contain";
+          row.append(img);
+        }
+        const move = document.createElement("div");
+        move.className = "report-actions";
+        for (const [label, delta] of [
+          ["本组上移", -1],
+          ["本组下移", 1],
+        ] as const) {
+          const index = pages.indexOf(p),
+            target = index + delta;
+          if (target < 0 || target >= pages.length) continue;
+          move.append(
+            button(label, () => {
+              const ids = pages.map((p) => p.id);
+              [ids[index], ids[target]] = [ids[target], ids[index]];
+              reorder(ids);
+            }),
+          );
+        }
+        row.append(move);
         const targetLabel = document.createElement("label");
         uiText(targetLabel, () => t("所属报告"));
         const select = document.createElement("select");
@@ -241,6 +346,15 @@ export function setupReports(
         }
         select.value = id;
         select.onchange = () => {
+          for (const member of [
+            ...pages,
+            ...(grouped.get(select.value) || []),
+          ]) {
+            member.reportReview = undefined;
+          }
+          const targetPages = grouped.get(select.value) || [];
+          targetPages.forEach((member, index) => (member.reportOrder = index));
+          p.reportOrder = targetPages.length;
           p.reportId = select.value;
           p.groupingReason = undefined;
           p.reportTitle = grouped.get(select.value)?.[0].reportTitle;
@@ -251,6 +365,9 @@ export function setupReports(
         row.append(targetLabel);
         row.append(
           button("从此页拆分", () => {
+            pages.forEach((p) => {
+              p.reportReview = undefined;
+            });
             for (const next of pages.slice(pages.indexOf(p))) {
               next.reportId = p.id;
               next.reportTitle = titleOf(p);

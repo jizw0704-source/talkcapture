@@ -94,7 +94,7 @@ test("命名跨入口同步，Markdown 快捷入口统一检查生成，改名�
   await page.locator("#languageChoice").selectOption("en");
   await page.locator("#settingsClose").click();
   await expect(page.locator("#importReviewSummary")).toContainText(
-    "Review and issues",
+    "Image checks",
   );
   await expect(
     page.getByRole("button", { name: "Export source Markdown", exact: true }),

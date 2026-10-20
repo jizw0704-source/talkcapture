@@ -30,6 +30,8 @@ export type Photo = {
   };
   groupingReason?: string;
   readingError?: string;
+  reportOrder?: number;
+  reportReview?: string;
   reportId?: string;
   reportTitle?: string;
   sourceNeedsReview?: boolean;
