@@ -20,6 +20,9 @@ importers:
       jspdf:
         specifier: 4.2.1
         version: 4.2.1
+      jszip:
+        specifier: 3.10.2
+        version: 3.10.2
       pptxgenjs:
         specifier: 4.0.1
         version: 4.0.1(patch_hash=8bbcaeda58e7a46f42841f60c0d00ae58d3e622f7004aa013645f87dd0002c99)

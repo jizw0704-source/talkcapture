@@ -1,4 +1,73 @@
 export const english = {
+  项目备份与恢复: "Project backup and restore",
+  "备份包含全部原图、分组、页序和选区，不含密钥。文件仅保存在本机，请妥善保存。":
+    "Backups contain all originals, groups, order and crops, without API keys. Keep the local file safe.",
+  生成项目备份: "Create project backup",
+  选择备份恢复: "Choose backup to restore",
+  下载项目备份: "Download project backup",
+  恢复项目备份: "Restore project backup",
+  确认替换并恢复: "Replace and restore",
+  批量导出多组报告: "Export multiple reports",
+  导出格式: "Export formats",
+  "原文 Md": "Source Md",
+  生成所选报告: "Generate selected reports",
+  重试未完成文件: "Retry incomplete files",
+  取消批量导出: "Cancel batch export",
+  下载报告压缩包: "Download report ZIP",
+  分组与导出说明: "Grouping and export help",
+  "选择报告和格式后打包；不会修改照片。":
+    "Select reports and formats to package. Photos stay unchanged.",
+  "导入并分组后可批量导出。": "Import and group photos to enable batch export.",
+  "正在校验原图并生成备份…": "Checking originals and creating backup…",
+  "备份已生成，请下载保存；包含原图和编辑数据，不含模型密钥。":
+    "Backup ready. Download it to keep originals and edits; model keys are excluded.",
+  "正在校验备份，当前项目保持不变…":
+    "Checking backup. Current project stays unchanged…",
+  "备份包含 {0} 张照片、{1} 组报告。恢复会替换当前项目，请先下载当前项目备份。":
+    "Backup contains {0} photos and {1} reports. Restore replaces the current project. Download its backup first.",
+  "恢复失败，当前项目保留：{0}": "Restore failed; current project kept: {0}",
+  尚未完成: "Incomplete",
+  "请至少选择一组报告和一种格式。":
+    "Select at least one report and one format.",
+  "正在生成：{0}": "Generating: {0}",
+  "存在缺图或未确认选区，请先返回核对。":
+    "Originals are missing or crops are unconfirmed. Return to review first.",
+  "正在生成：{0} · {1}": "Generating: {0} · {1}",
+  "已完成 {0}/{1} 个文件；失败或取消项可重试，已完成文件保留。":
+    "Completed {0}/{1} files. Retry failed or cancelled items; completed files are kept.",
+  "打包失败，可分别下载已完成文件：{0}":
+    "Packaging failed. Download completed files individually: {0}",
+  "正在取消，已完成文件保留…": "Cancelling. Completed files are kept…",
+  "备份文件超过 512 MB，请分项目保存。":
+    "Backup exceeds 512 MB. Save smaller projects.",
+  "备份文件损坏。": "Backup file is damaged.",
+  "备份结构不受支持。": "Unsupported backup structure.",
+  "备份目录损坏。": "Backup directory is damaged.",
+  "备份包含不支持的条目。": "Backup contains unsupported entries.",
+  "备份元数据过大。": "Backup metadata is too large.",
+  "备份内容超过 512 MB。": "Backup contents exceed 512 MB.",
+  "备份目录不完整。": "Backup directory is incomplete.",
+  "打包内容超过 512 MB，请减少所选报告。":
+    "Package exceeds 512 MB. Select fewer reports.",
+  "备份项目格式不受支持。": "Unsupported backup project format.",
+  "备份照片标识无效。": "Invalid photo identity in backup.",
+  "备份照片参数无效。": "Invalid photo metadata in backup.",
+  "备份选区或照片参数无效。": "Invalid crops or photo metadata in backup.",
+  "备份提示无效。": "Invalid warnings in backup.",
+  "备份文字参数无效。": "Invalid text metadata in backup.",
+  "备份页序无效。": "Invalid page order in backup.",
+  "备份识别文字无效。": "Invalid OCR data in backup.",
+  "部分原图缺失，请先补传再备份。":
+    "Some originals are missing. Restore them before creating a backup.",
+  "原图校验失败，请重新核对后备份。":
+    "Original verification failed. Review the photos before backup.",
+  "不是受支持的报告拾光备份。": "Not a supported TalkCapture backup.",
+  "备份原图数量不一致。": "Original count does not match backup metadata.",
+  "备份缺少原图。": "Backup is missing originals.",
+  "备份原图校验失败。": "Backup original verification failed.",
+  "恢复未完成，原项目保留。":
+    "Restore did not finish; the previous project was kept.",
+
   "章节编号可能倒排，请核对顺序；不会自动重排。":
     "Chapter numbers may run backwards. Check the order; no automatic reordering.",
   "画面检查 · 当前无异常": "Image checks · No issues detected",

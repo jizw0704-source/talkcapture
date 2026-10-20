@@ -91,7 +91,9 @@ Open <http://127.0.0.1:9015/?auto-crop=1>. The interface supports 中文 and Eng
 1. Select photos on the computer, or choose “手机传图” (Phone transfer), scan the QR code, and approve the connection on the desktop.
 2. Review the automatically detected corners and previews; adjust and confirm inaccurate pages.
 3. Continue to Group reports. Local text recognition suggests report boundaries and names; check the groups and edit, split or merge them as needed.
-4. Export each selected report as image-based PPTX, PDF or source Markdown. Content analysis is available through a separate optional entry. Whole-project quick export remains an optional shortcut.
+4. Export a report as image-based PPTX, PDF or source Markdown, or expand batch export to package selected reports and formats together. Content analysis and whole-project quick export remain optional.
+
+Settings include project backup and restore for all originals, crops, groups and ordering, without model API keys. Restore validates the backup and asks before replacing the current project. Browser cache is not a substitute for a downloaded backup. Backups and individual export ZIPs currently have a 512 MB limit.
 
 Each group shows a representative thumbnail. Page text and secondary actions expand on demand. Settings presents language, theme and text size before collapsed model configuration.
 

@@ -1898,3 +1898,31 @@ body[data-empty="false"] .dropzone small {
 #galleryRemovalStatus:empty {
   display: none;
 }
+
+.batch-choices {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+  min-width: 0;
+}
+.batch-choices label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.batch-choices input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+#batchResults p {
+  overflow-wrap: anywhere;
+}
+#restoreDialog {
+  max-width: min(560px, calc(100vw - 32px));
+}
+#restoreInfo {
+  overflow-wrap: anywhere;
+}

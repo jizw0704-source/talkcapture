@@ -1,3 +1,5 @@
+import { setupDelivery } from "./delivery-ui";
+let renderDelivery = () => {};
 import { orderedReport, reconcileReportReviews } from "./report-order";
 import { t, uiText, uiAttr, setupLocale } from "../shared/i18n.js";
 import { collectReviewIssues } from "./review-issues";
@@ -146,6 +148,7 @@ const button = (text: string, action: () => void) => {
 };
 const bytes = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 function renderStage() {
+  renderDelivery();
   if (exportStatusOnly) $("status").hidden = stage !== "export";
   renderGallery();
   document.body.dataset.stage = stage;
@@ -409,7 +412,7 @@ function setBusy(value: boolean) {
   busy = value;
   document
     .querySelectorAll<HTMLButtonElement>(
-      "button:not(#settingsOpen):not(#settingsClose):not(#saveModelSettings):not(#testModelSettings):not(#cancelAnalysis):not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control]):not([data-gallery-control])",
+      "button:not(#settingsOpen):not(#settingsClose):not(#saveModelSettings):not(#testModelSettings):not(#cancelAnalysis):not(#cancel):not(#cancelDetect):not(#cancelAutomatic):not([data-phone-control]):not([data-gallery-control]):not([data-export-control])",
     )
     .forEach((el) => {
       el.disabled = value;
@@ -2273,3 +2276,20 @@ for (const [id, filter] of [
     $("batchFilter").focus();
   };
 }
+
+renderDelivery = setupDelivery(
+  () => ({
+    version: 1,
+    name: input("projectName").value,
+    aspect: select("aspect").value,
+    quality: select("quality").value,
+    photos,
+  }),
+  () => busy,
+  setBusy,
+  async () => {
+    clearTimeout(saveTimer);
+    await persistProject();
+    if (metadataError) throw Error(metadataError);
+  },
+);

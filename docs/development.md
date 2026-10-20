@@ -107,3 +107,7 @@
 `server/model-config.ts` 统一读写电脑端配置；`server/settings.ts` 提供同源且带 `x-desktop-client: 1` 的设置接口，仅返回模型、官方地区和密钥存在状态。保存使用串行队列、同目录临时文件原子替换和0600权限，保留其他配置值，空密钥保留原值。已有启动环境变量时拒绝页面写入，避免界面显示已保存但实际不生效。`POST /api/settings/test` 只发送固定测试文字，仍可能产生 API 费用。
 
 `src/settings.ts` 管理原生 dialog、显示偏好和模型表单。主题和字号只写入 `talkcapture-display`，不会把密钥写入浏览器存储。软件版本由 Vite 从 package.json 读取，构建信息取本次构建时间。测试使用临时配置文件或网络模拟，不修改开发机真实密钥。
+
+### 项目交付模块（2026-10-20）
+
+`backup.ts`校验版本、元数据与原图SHA-256，`archive.ts`限制自有STORE备份目录与大小，`storage.restoreProject`在同一IndexedDB事务中替换原图和项目。`delivery-ui.ts`提供设置内备份/恢复预览、批量队列/取消/重试、下载与来源清单。JSZip3.10.2原为PPTX导出的间接依赖，现声明为直接依赖，用于浏览器本地打包；沿用已有锁定版本，没有新云端服务。

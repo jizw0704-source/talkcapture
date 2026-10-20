@@ -310,15 +310,18 @@
           <button id="groupsBack">返回核对</button>
         </div>
         <div id="reportWorkspace" class="report-workspace" hidden>
-          <p class="hint">
-            按报告人、标题和内容线索建议分组。核对名称与分界后，每组可分别导出
-            PPT、PDF 或原文 Markdown。
-          </p>
+          <details class="settings group-help">
+            <summary>分组与导出说明</summary>
+            <p class="hint">
+              按报告人、标题和内容线索建议分组。核对名称与分界后，每组可分别导出
+              PPT、PDF 或原文 Markdown。
+            </p>
+            <p class="hint">已有分组和名称会保留；仅为未分组照片建议分组。</p>
+          </details>
           <div class="report-actions">
             <button id="analyzeReports">识别文字并建议分组</button
             ><button id="cancelAnalysis" hidden>取消识别</button>
           </div>
-          <p class="hint">已有分组和名称会保留；仅为未分组照片建议分组。</p>
           <p id="reportStatus" role="status" class="hint">
             文字识别与分组在本机进行；分界和名称是待核对建议。内容分析为可选操作。
           </p>
@@ -615,6 +618,35 @@
           >
         </div>
         <p id="exportCheck" class="export-check"></p>
+        <details id="batchExport" class="settings">
+          <summary>批量导出多组报告</summary>
+          <div id="batchGroups" class="batch-choices"></div>
+          <fieldset class="batch-choices">
+            <legend>导出格式</legend>
+            <label
+              ><input type="checkbox" name="batchFormat" value="pptx" checked />
+              PPT</label
+            >
+            <label
+              ><input type="checkbox" name="batchFormat" value="pdf" checked />
+              PDF</label
+            >
+            <label
+              ><input type="checkbox" name="batchFormat" value="md" checked />
+              原文 Md</label
+            >
+          </fieldset>
+          <div class="report-actions">
+            <button id="batchRun">生成所选报告</button
+            ><button id="batchRetry" hidden>重试未完成文件</button
+            ><button id="batchCancel" data-export-control hidden>
+              取消批量导出
+            </button>
+          </div>
+          <p id="batchStatus" class="hint" role="status"></p>
+          <a id="batchDownload" class="download" hidden>下载报告压缩包</a>
+          <div id="batchResults"></div>
+        </details>
         <details id="exportOptions" class="settings">
           <summary>更多导出选项</summary>
           <label
@@ -761,6 +793,19 @@
           aria-live="polite"
         ></p>
       </details>
+      <details class="settings-section" id="projectSettings">
+        <summary>项目备份与恢复</summary>
+        <p class="hint">
+          备份包含全部原图、分组、页序和选区，不含密钥。文件仅保存在本机，请妥善保存。
+        </p>
+        <div class="report-actions">
+          <button id="backupSave">生成项目备份</button
+          ><button id="backupLoad">选择备份恢复</button>
+        </div>
+        <input id="backupFile" type="file" accept=".zip" hidden />
+        <p id="backupStatus" role="status" class="hint"></p>
+        <a id="backupDownload" class="download" hidden>下载项目备份</a>
+      </details>
       <section class="settings-section" aria-labelledby="aboutSettingsTitle">
         <h3 id="aboutSettingsTitle">关于报告拾光</h3>
         <div class="about-brand" translate="no">
@@ -798,6 +843,14 @@
           >GitHub 仓库</a
         >
       </section>
+    </dialog>
+    <dialog id="restoreDialog" aria-labelledby="restoreTitle">
+      <h2 id="restoreTitle">恢复项目备份</h2>
+      <p id="restoreInfo"></p>
+      <div class="report-actions">
+        <button id="restoreCancel">保留当前项目</button
+        ><button id="restoreConfirm">确认替换并恢复</button>
+      </div>
     </dialog>
   </body>
 </html>

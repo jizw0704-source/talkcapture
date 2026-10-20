@@ -126,3 +126,36 @@ export function writeProject(value: SavedProject | null) {
     }
   });
 }
+
+// One transaction replaces metadata and originals together; failure preserves the old project.
+export function restoreProject(value: SavedProject) {
+  return enqueue(async () => {
+    const db = await open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(["project", "originals"], "readwrite");
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () =>
+          reject(tx.error || Error("恢复未完成，原项目保留。"));
+        try {
+          const originals = tx.objectStore("originals");
+          originals.clear();
+          for (const photo of value.photos) {
+            if (!photo.file || !photo.digest) throw Error("备份缺少原图。");
+            originals.put({ blob: photo.file, digest: photo.digest }, photo.id);
+          }
+          const photos = value.photos.map(
+            ({ file: _file, thumb: _thumb, result: _result, ...p }) => p,
+          );
+          tx.objectStore("project").put({ ...value, photos }, "current");
+        } catch (error) {
+          tx.abort();
+          reject(error);
+        }
+      });
+    } finally {
+      db.close();
+    }
+  });
+}
